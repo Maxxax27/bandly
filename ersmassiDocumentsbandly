@@ -1,0 +1,20 @@
+[33m9e2a080[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdev[m[33m, [m[1;31morigin/dev[m[33m)[m HEAD@{0}: commit: update
+[33m5ecbfd6[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{1}: reset: moving to origin/dev
+[33m1c2c1fa[m HEAD@{2}: checkout: moving from fix/deploy to dev
+[33m2e9029c[m[33m ([m[1;32mfix/deploy[m[33m)[m HEAD@{3}: reset: moving to HEAD
+[33m2e9029c[m[33m ([m[1;32mfix/deploy[m[33m)[m HEAD@{4}: commit: chore: remove service account file
+[33m8f7580b[m HEAD@{5}: commit: chore: remove service account file
+[33m99fe9b1[m HEAD@{6}: commit: chore: remove service account file
+[33m37f1a61[m HEAD@{7}: commit: chore: ignore service account json
+[33m20ce1d8[m HEAD@{8}: reset: moving to 20ce1d8
+[33mb508b64[m HEAD@{9}: commit: chore: remove service account json
+[33m31126d6[m HEAD@{10}: commit: chore: ignore service account json
+[33m20ce1d8[m HEAD@{11}: commit: chore: remove service account json
+[33m1c2c1fa[m HEAD@{12}: checkout: moving from dev to fix/deploy
+[33m1c2c1fa[m HEAD@{13}: commit: update
+[33m5ecbfd6[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{14}: checkout: moving from main to dev
+[33m5ecbfd6[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{15}: checkout: moving from dev to main
+[33m5ecbfd6[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{16}: checkout: moving from dev to dev
+[33m5ecbfd6[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{17}: checkout: moving from main to dev
+[33m5ecbfd6[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{18}: Branch: renamed refs/heads/master to refs/heads/main
+[33m5ecbfd6[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{20}: commit (initial): Initial Next.js setup
