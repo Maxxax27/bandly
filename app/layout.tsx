@@ -2,6 +2,7 @@ import "./globals.css";
 import Providers from "./providers";
 import Header from "@/components/Header";
 import HeaderNav from "@/components/HeaderNav";
+import MobileBottomNav from "@/components/MobileBottomNav";
 
 export const metadata = {
   title: "Bandly | Schweizer Bandbörse",
@@ -19,15 +20,21 @@ export default function RootLayout({
         <Providers>
           <Header />
 
-          {/* Main */}
+          {/* HeaderNav NUR auf Mobile */}
+          <div className="md:hidden">
+            <HeaderNav />
+          </div>
+
           <main className="mx-auto max-w-6xl px-4 py-8">
-            <div className="rounded-[2.5rem] bg-white border border-zinc-200 shadow-lg p-6 md:p-8">
+            <div className="rounded-[2.5rem] border border-zinc-200 bg-white p-6 shadow-lg md:p-8">
               {children}
             </div>
           </main>
+
+          {/* BottomNav ist sowieso md:hidden (nur Mobile) */}
+          <MobileBottomNav />
         </Providers>
       </body>
     </html>
   );
 }
-

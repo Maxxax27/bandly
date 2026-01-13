@@ -31,34 +31,36 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-black text-white">
-      {/* Hero */}
-      <section className="mx-auto max-w-4xl px-4 py-16 text-center">
-        <h1 className="text-4xl font-bold">
-          🎸 Schweizer Bandbörse
-        </h1>
-        <p className="mt-4 text-white/70">
-          Bands · Musiker · Community
-        </p>
-      </section>
+      {/* MOBILE APP CONTAINER (auch auf Desktop) */}
+      <div className="mx-auto w-full max-w-md">
 
-      {/* Post Composer */}
-      <section className="mx-auto max-w-3xl px-4">
-        {uid && myProfile ? (
-          <PostComposer myProfile={myProfile} />
-        ) : (
-          <div className="rounded-2xl border border-white/10 bg-black/40 p-4 text-white/60">
-            Melde dich an, um einen Beitrag zu erstellen.
-          </div>
-        )}
-      </section>
+        {/* Hero */}
+        <section className="px-4 py-12 text-center">
+          <h1 className="text-3xl font-bold">
+            🎸 Schweizer Bandbörse
+          </h1>
+          <p className="mt-3 text-sm text-white/70">
+            Bands · Musiker · Community
+          </p>
+        </section>
 
-      {/* Feed */}
-      <section className="mx-auto max-w-3xl px-4 pb-24 pt-6">
-        <h2 className="mb-4 text-lg font-semibold text-white/80">
-        </h2>
+        {/* Post Composer */}
+        <section className="px-4">
+          {uid && myProfile ? (
+            <PostComposer myProfile={myProfile} />
+          ) : (
+            <div className="rounded-2xl border border-white/10 bg-black/40 p-4 text-sm text-white/60">
+              Melde dich an, um einen Beitrag zu erstellen.
+            </div>
+          )}
+        </section>
 
-        <Feed pageSize={10} />
-      </section>
+        {/* Feed */}
+        <section className="px-4 pb-28 pt-6">
+          <Feed pageSize={10} />
+        </section>
+
+      </div>
     </main>
   );
 }
