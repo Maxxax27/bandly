@@ -20,18 +20,19 @@ export default function RootLayout({
         <Providers>
           <Header />
 
-          {/* HeaderNav NUR auf Mobile */}
-          <div className="md:hidden">
+          {/* HeaderNav nur Desktop (oben keine Reiter auf Mobile) */}
+          <div className="hidden md:block">
             <HeaderNav />
           </div>
 
+          {/* Seitencontent */}
           <main className="mx-auto max-w-6xl px-4 py-8">
             <div className="rounded-[2.5rem] border border-zinc-200 bg-white p-6 shadow-lg md:p-8">
               {children}
             </div>
           </main>
 
-          {/* BottomNav ist sowieso md:hidden (nur Mobile) */}
+          {/* BottomNav: nur Mobile (Komponente hat md:hidden) */}
           <MobileBottomNav />
         </Providers>
       </body>

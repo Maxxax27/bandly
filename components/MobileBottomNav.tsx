@@ -21,6 +21,7 @@ export default function MobileBottomNav() {
 
   const items = [
     { href: "/", label: "Feed", icon: HomeIcon },
+    { href: "/search", label: "Suche", icon: SearchIcon },
     { href: "/listings", label: "Inserate", icon: TagIcon },
     { href: "/events", label: "Events", icon: CalendarIcon },
     { href: profileHref, label: "Profil", icon: UserIcon },
@@ -33,7 +34,7 @@ export default function MobileBottomNav() {
       aria-label="Bottom Navigation"
     >
       <div className="mx-auto w-full max-w-md px-2">
-        <ul className="grid grid-cols-4 gap-1 py-2">
+        <ul className="grid grid-cols-5 gap-1 py-2">
           {items.map((it) => {
             const active = isActive(pathname, it.href);
             const Icon = it.icon;
@@ -49,7 +50,9 @@ export default function MobileBottomNav() {
                   aria-current={active ? "page" : undefined}
                 >
                   <Icon active={active} />
-                  <span className={clsx(active && "font-semibold")}>{it.label}</span>
+                  <span className={clsx(active && "font-semibold")}>
+                    {it.label}
+                  </span>
                 </Link>
               </li>
             );
@@ -98,6 +101,25 @@ function HomeIcon({ active }: { active: boolean }) {
         stroke="currentColor"
         strokeWidth="1.8"
         strokeLinejoin="round"
+      />
+    </IconBase>
+  );
+}
+
+function SearchIcon({ active }: { active: boolean }) {
+  return (
+    <IconBase active={active}>
+      <path
+        d="M10.5 18a7.5 7.5 0 1 1 5.3-12.8A7.5 7.5 0 0 1 10.5 18Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M16.3 16.3 20 20"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
       />
     </IconBase>
   );
