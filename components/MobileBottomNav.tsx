@@ -20,7 +20,11 @@ export default function MobileBottomNav() {
   // ✅ passe das an, falls deine Login-Seite anders heißt
   const loginHref = "/login";
 
-  const profileHref = uid ? `/musicians/${uid}` : loginHref;
+  // ✅ Edit-Route (empfohlen). Falls du eine andere Edit-Route hast, hier ändern:
+  const editProfileHref = "/profile/edit";
+
+  // Wenn eingeloggt -> direkt Edit, sonst -> Login
+  const profileHref = uid ? editProfileHref : loginHref;
   const profileLabel = uid ? "Profil" : "Login";
 
   const items = [
