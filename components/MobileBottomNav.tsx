@@ -17,7 +17,7 @@ export default function MobileBottomNav() {
   const pathname = usePathname();
   const uid = auth.currentUser?.uid;
 
-  const profileHref = uid ? `/musicians/${uid}` : "/"; // ggf. später "/login"
+  const profileHref = uid ? `/musicians/${uid}` : "/";
 
   const items = [
     { href: "/", label: "Feed", icon: HomeIcon },
@@ -29,7 +29,7 @@ export default function MobileBottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 md:hidden border-t border-white/10 bg-black/80 backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-[9999] md:hidden border-t border-white/10 bg-black/80 backdrop-blur"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       aria-label="Bottom Navigation"
     >
@@ -45,7 +45,9 @@ export default function MobileBottomNav() {
                   href={it.href}
                   className={clsx(
                     "flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs",
-                    active ? "text-white" : "text-white/60 hover:text-white"
+                    active
+                      ? "text-white"
+                      : "text-white/60 hover:text-white"
                   )}
                   aria-current={active ? "page" : undefined}
                 >
@@ -63,7 +65,7 @@ export default function MobileBottomNav() {
   );
 }
 
-/* --- Icons (inline SVG) --- */
+/* --- Icons --- */
 
 function IconBase({
   children,
@@ -113,7 +115,6 @@ function SearchIcon({ active }: { active: boolean }) {
         d="M10.5 18a7.5 7.5 0 1 1 5.3-12.8A7.5 7.5 0 0 1 10.5 18Z"
         stroke="currentColor"
         strokeWidth="1.8"
-        strokeLinejoin="round"
       />
       <path
         d="M16.3 16.3 20 20"
@@ -132,13 +133,6 @@ function TagIcon({ active }: { active: boolean }) {
         d="M3.5 12.2V6.5A2 2 0 0 1 5.5 4.5h5.7a2 2 0 0 1 1.4.6l8 8a2 2 0 0 1 0 2.8l-4.7 4.7a2 2 0 0 1-2.8 0l-8-8a2 2 0 0 1-.6-1.4Z"
         stroke="currentColor"
         strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M7.8 8.2h.01"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
       />
     </IconBase>
   );
@@ -148,22 +142,18 @@ function CalendarIcon({ active }: { active: boolean }) {
   return (
     <IconBase active={active}>
       <path
-        d="M7 3v3M17 3v3"
+        d="M7 3v3M17 3v3M4.5 8.5h15"
         stroke="currentColor"
         strokeWidth="1.8"
-        strokeLinecap="round"
       />
-      <path
-        d="M4.5 8.5h15"
+      <rect
+        x="4"
+        y="6"
+        width="16"
+        height="14"
+        rx="2.5"
         stroke="currentColor"
         strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <path
-        d="M6 5.5h12A2.5 2.5 0 0 1 20.5 8v11A2.5 2.5 0 0 1 18 21.5H6A2.5 2.5 0 0 1 3.5 19V8A2.5 2.5 0 0 1 6 5.5Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
       />
     </IconBase>
   );
@@ -176,7 +166,6 @@ function UserIcon({ active }: { active: boolean }) {
         d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"
         stroke="currentColor"
         strokeWidth="1.8"
-        strokeLinejoin="round"
       />
       <path
         d="M4.5 20.5a7.5 7.5 0 0 1 15 0"

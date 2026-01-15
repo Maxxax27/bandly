@@ -1,54 +1,46 @@
-"use client";
+import "./globals.css";
+import Providers from "./providers";
+import Header from "@/components/Header";
+import HeaderNav from "@/components/HeaderNav";
+import MobileBottomNav from "@/components/MobileBottomNav";
 
-import { useEffect, useState } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
+export const metadata = {
+  title: "Bandly | Schweizer Bandbörse",
+  description: "Finde Musiker:innen & Bands in der Schweiz.",
+};
 
-import { Feed } from "@/components/Feed";
-import { PostComposer } from "@/components/PostComposer";
+// WICHTIG: sorgt dafür, dass Mobile wirklich als Mobile gerendert wird
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 
-export default function HomeClient() {
-  const [myProfile, setMyProfile] = useState<any | null>(null);
-  const uid = auth.currentUser?.uid;
-
-  useEffect(() => {
-    if (!uid) {
-      setMyProfile(null);
-      return;
-    }
-
-    const ref = doc(db, "profiles", uid);
-    const unsub = onSnapshot(ref, (snap) => {
-      setMyProfile(snap.exists() ? { uid, ...snap.data() } : null);
-    });
-
-    return () => unsub();
-  }, [uid]);
-
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <main className="min-h-screen bg-black text-white">
-      {/* Hero */}
-      <section className="mx-auto max-w-4xl px-4 py-16 text-center">
-        <h1 className="text-4xl font-bold">🎸 Schweizer Bandbörse</h1>
-        <p className="mt-4 text-white/70">Bands · Musiker · Community</p>
-      </section>
+    <html lang="de" className="dark">
+      <body className="min-h-screen bg-[#f7f7fb] text-zinc-900 antialiased">
+        <Providers>
+          <Header />
 
-      {/* Composer (nur wenn eingeloggt + Profil geladen) */}
-      <section className="mx-auto max-w-3xl px-4">
-        {uid && myProfile ? (
-          <PostComposer myProfile={myProfile} />
-        ) : (
-          <div className="rounded-2xl border border-white/10 bg-black/40 p-4 text-white/70">
-            Logge dich ein, um einen Post zu erstellen.
+          {/* oben keine Reiter auf Mobile */}
+          <div className="hidden md:block">
+            <HeaderNav />
           </div>
-        )}
-      </section>
 
-      {/* Feed */}
-      <section className="mx-auto max-w-3xl px-4 pb-24 pt-6">
-        <h2 className="mb-4 text-lg font-semibold text-white/80">📰 Artist Feed</h2>
-        <Feed pageSize={10} />
-      </section>
-    </main>
+          <main className="mx-auto max-w-6xl px-4 py-8">
+            <div className="rounded-[2.5rem] border border-zinc-200 bg-white p-6 shadow-lg md:p-8">
+              {children}
+            </div>
+          </main>
+
+          {/* Bottom Navigation nur Mobile (md:hidden sitzt im Component) */}
+          <MobileBottomNav />
+        </Providers>
+      </body>
+    </html>
   );
 }
