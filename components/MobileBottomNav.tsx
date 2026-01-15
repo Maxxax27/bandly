@@ -17,14 +17,18 @@ export default function MobileBottomNav() {
   const pathname = usePathname();
   const uid = auth.currentUser?.uid;
 
-  const profileHref = uid ? `/musicians/${uid}` : "/";
+  // ✅ passe das an, falls deine Login-Seite anders heißt
+  const loginHref = "/login";
+
+  const profileHref = uid ? `/musicians/${uid}` : loginHref;
+  const profileLabel = uid ? "Profil" : "Login";
 
   const items = [
     { href: "/", label: "Feed", icon: HomeIcon },
     { href: "/search", label: "Suche", icon: SearchIcon },
     { href: "/listings", label: "Inserate", icon: TagIcon },
     { href: "/events", label: "Events", icon: CalendarIcon },
-    { href: profileHref, label: "Profil", icon: UserIcon },
+    { href: profileHref, label: profileLabel, icon: UserIcon },
   ];
 
   return (
@@ -45,9 +49,7 @@ export default function MobileBottomNav() {
                   href={it.href}
                   className={clsx(
                     "flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs",
-                    active
-                      ? "text-white"
-                      : "text-white/60 hover:text-white"
+                    active ? "text-white" : "text-white/60 hover:text-white"
                   )}
                   aria-current={active ? "page" : undefined}
                 >

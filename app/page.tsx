@@ -37,10 +37,10 @@ export default function Home() {
         {/* Hero */}
         <section className="px-4 py-12 text-center">
           <h1 className="text-3xl font-bold">
-            🎸 Schweizer Bandbörse
+            🎸 Schweizer Musik Community
           </h1>
           <p className="mt-3 text-sm text-white/70">
-            Bands · Musiker · Community
+            Poste · Teile · Verbinde
           </p>
         </section>
 

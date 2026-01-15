@@ -5,7 +5,7 @@ import HeaderNav from "@/components/HeaderNav";
 import MobileBottomNav from "@/components/MobileBottomNav";
 
 export const metadata = {
-  title: "Bandly | Schweizer Bandbörse",
+  title: "Bandly | Schweizer Musiker Community",
   description: "Finde Musiker:innen & Bands in der Schweiz.",
 };
 
