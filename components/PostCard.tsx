@@ -158,6 +158,57 @@ export function PostCard({ post }: { post: any }) {
         {post.content}
       </div>
 
+      {/* ✅ Attachments (Bilder / Audio / Dokumente) */}
+      {Array.isArray(post.attachments) && post.attachments.length > 0 && (
+        <div className="mt-3 space-y-3">
+          {post.attachments.map((att: any, idx: number) => {
+            // 🖼️ Image
+            if (att.type === "image") {
+              return (
+                <img
+                  key={`${att.path ?? att.url}-${idx}`}
+                  src={att.url}
+                  alt={att.name ?? "Bild"}
+                  loading="lazy"
+                  className="w-full max-h-[460px] rounded-2xl border border-white/10 object-cover bg-black/30"
+                />
+              );
+            }
+
+            // 🎵 Audio
+            if (att.type === "audio") {
+              return (
+                <div
+                  key={`${att.path ?? att.url}-${idx}`}
+                  className="rounded-2xl border border-white/10 bg-black/30 p-3"
+                >
+                  <div className="mb-2 truncate text-sm text-white/80">
+                    🎵 {att.name ?? "Audio"}
+                  </div>
+                  <audio controls src={att.url} className="w-full" />
+                </div>
+              );
+            }
+
+            // 📄 Document (default)
+            return (
+              <a
+                key={`${att.path ?? att.url}-${idx}`}
+                href={att.url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white/80 hover:bg-black/40"
+              >
+                <span className="shrink-0">📎</span>
+                <span className="min-w-0 truncate">
+                  {att.name ?? "Datei öffnen"}
+                </span>
+              </a>
+            );
+          })}
+        </div>
+      )}
+
       {/* 🔗 Inserat / Event Verlinkung */}
       {post.type === "listing" && post.ref?.id && (
         <div className="mt-3">
