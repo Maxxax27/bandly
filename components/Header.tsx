@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
@@ -12,7 +12,7 @@ export default function Header() {
     <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/80 backdrop-blur">
       <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
         
-        {/* Logo */}
+        {/* Logo (bleibt auch auf Mobile sichtbar) */}
         <Link
           href="/"
           className="flex items-center gap-2 font-bold text-lg text-zinc-900"
@@ -21,8 +21,8 @@ export default function Header() {
           Bandly
         </Link>
 
-        {/* Navigation */}
-        <nav className="flex items-center gap-6 text-sm font-medium text-zinc-600">
+        {/* Navigation – NUR DESKTOP */}
+        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-zinc-600">
           <Link href="/listings" className="hover:text-black transition">
             Inserate
           </Link>
@@ -32,12 +32,12 @@ export default function Header() {
           </Link>
 
           <Link href="/bands" className="hover:text-black transition">
-  Bands
-</Link>
-          <Link href="/events" className="hover:text-black transition">
-  Events
-</Link>
+            Bands
+          </Link>
 
+          <Link href="/events" className="hover:text-black transition">
+            Events
+          </Link>
 
           {/* 🔔 Nachrichten mit Badge */}
           <Link
