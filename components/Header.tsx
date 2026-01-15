@@ -9,40 +9,40 @@ export default function Header() {
   const unread = useUnreadCount(user?.uid ?? null);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/80 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur">
       <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
         
-        {/* Logo (bleibt auch auf Mobile sichtbar) */}
+        {/* Logo */}
         <Link
           href="/"
-          className="flex items-center gap-2 font-bold text-lg text-zinc-900"
+          className="flex items-center gap-2 font-bold text-lg text-white"
         >
           <span className="text-xl">🎸</span>
           Bandly
         </Link>
 
-        {/* Navigation – NUR DESKTOP */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-zinc-600">
-          <Link href="/listings" className="hover:text-black transition">
+        {/* -------- Desktop Navigation -------- */}
+        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-white/70">
+          <Link href="/listings" className="hover:text-white transition">
             Inserate
           </Link>
 
-          <Link href="/musicians" className="hover:text-black transition">
+          <Link href="/musicians" className="hover:text-white transition">
             Musiker
           </Link>
 
-          <Link href="/bands" className="hover:text-black transition">
+          <Link href="/bands" className="hover:text-white transition">
             Bands
           </Link>
 
-          <Link href="/events" className="hover:text-black transition">
+          <Link href="/events" className="hover:text-white transition">
             Events
           </Link>
 
-          {/* 🔔 Nachrichten mit Badge */}
+          {/* Nachrichten (Desktop) */}
           <Link
             href="/messages"
-            className="relative inline-flex items-center gap-2 hover:text-black transition"
+            className="relative inline-flex items-center gap-2 hover:text-white transition"
           >
             <span>Nachrichten</span>
 
@@ -51,7 +51,6 @@ export default function Header() {
                 className="min-w-[18px] h-[18px] px-1 rounded-full
                            bg-red-600 text-white text-[11px] font-bold
                            inline-flex items-center justify-center"
-                title={`${unread} ungelesene Nachrichten`}
               >
                 {unread > 99 ? "99+" : unread}
               </span>
@@ -60,11 +59,45 @@ export default function Header() {
 
           <Link
             href="/profile"
-            className="rounded-xl border border-zinc-300 bg-white px-3 py-1.5 text-zinc-800 hover:bg-zinc-50 transition"
+            className="rounded-xl border border-white/20 bg-black/40 px-3 py-1.5 text-white hover:bg-black/60 transition"
           >
             Profil
           </Link>
         </nav>
+
+        {/* -------- Mobile: Messages Icon only -------- */}
+        <div className="md:hidden">
+          <Link
+            href="/messages"
+            className="relative inline-flex items-center justify-center rounded-xl p-2 text-white/80 hover:text-white"
+            aria-label="Nachrichten"
+          >
+            {/* Icon */}
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z" />
+            </svg>
+
+            {/* Badge */}
+            {unread > 0 && (
+              <span
+                className="absolute -top-1 -right-1 min-w-[18px] h-[18px]
+                           rounded-full bg-red-600 text-white text-[11px]
+                           font-bold flex items-center justify-center"
+              >
+                {unread > 99 ? "99+" : unread}
+              </span>
+            )}
+          </Link>
+        </div>
       </div>
     </header>
   );
