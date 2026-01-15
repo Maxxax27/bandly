@@ -266,7 +266,7 @@ export default function ListingsPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-zinc-900">Inserate</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-white-900">Inserate</h1>
           <p className="text-sm text-zinc-600 mt-1">Öffentliche Musiker- & Bandinserate aus der Schweiz.</p>
         </div>
 

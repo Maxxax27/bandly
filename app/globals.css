@@ -29,6 +29,36 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+@layer components {
+  .surface {
+    @apply rounded-2xl border border-white/5 bg-zinc-950/80;
+  }
+
+  .card {
+    @apply rounded-2xl border border-white/10 bg-black/30;
+  }
+
+  .card-soft {
+    @apply rounded-2xl border border-white/10 bg-black/20;
+  }
+
+  .input {
+    @apply w-full rounded-2xl border border-white/10 bg-black/30 p-3 text-white placeholder:text-white/40 outline-none
+           focus:ring-1 focus:ring-white/15;
+  }
+
+  .btn {
+    @apply rounded-2xl border border-white/10 bg-black/30 px-4 py-2 text-sm text-white/80 hover:bg-white/10;
+  }
+
+  .btn-primary {
+    @apply rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-black hover:opacity-95 disabled:opacity-40;
+  }
+
+  .muted {
+    @apply text-white/60;
+  }
+}
 
 
 

@@ -12,36 +12,11 @@ import { useAuth } from "@/lib/auth-context";
 import { KANTON_LABELS } from "@/lib/cantons";
 
 const REGIONS = [
-  "LU",
-  "ZH",
-  "BE",
-  "BS",
-  "SG",
-  "AG",
-  "TG",
-  "GR",
-  "VS",
-  "TI",
-  "BL",
-  "AI",
-  "AR",
-  "FR",
-  "GE",
-  "GL",
-  "JU",
-  "NE",
-  "NW",
-  "OB",
-  "SH",
-  "SO",
-  "SZ",
-  "VD",
-  "ZG",
-  "UR",
+  "LU","ZH","BE","BS","SG","AG","TG","GR","VS","TI","BL","AI","AR","FR","GE","GL","JU","NE","NW","OB","SH","SO","SZ","VD","ZG","UR",
 ];
 
-const ROLES = ["Singer", "Gitarre", "Lead Guitar", "Rhythm Guitar", "Bass", "Drums", "Keys", "DJ", "Violin"];
-const GENRES = ["Rock", "Hard Rock", "Metal", "Blues", "Pop", "Indie", "Punk", "Jazz"];
+const ROLES = ["Singer","Gitarre","Lead Guitar","Rhythm Guitar","Bass","Drums","Keys","DJ","Violin"];
+const GENRES = ["Rock","Hard Rock","Metal","Blues","Pop","Indie","Punk","Jazz"];
 const STATUSES: Array<"Band" | "Solo" | "Suchend"> = ["Band", "Solo", "Suchend"];
 
 type Experience = {
@@ -88,10 +63,11 @@ function Badge({
 }) {
   const cls =
     tone === "dark"
-      ? "bg-zinc-900 text-white border-zinc-900"
+      ? "bg-white/10 text-white border-white/10"
       : tone === "ghost"
-      ? "bg-white text-zinc-900 border-zinc-200"
-      : "bg-white text-zinc-700 border-zinc-200";
+      ? "bg-black/30 text-white border-white/10"
+      : "bg-black/30 text-white/80 border-white/10";
+
   return (
     <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${cls}`}>
       {children}
@@ -99,7 +75,7 @@ function Badge({
   );
 }
 
-/** ✅ NEU: schöner Band-Chip (ersetzt das “ovale” Logo-Layout) */
+/** Band Chip (dark) */
 function BandChip({
   bandId,
   name,
@@ -112,10 +88,10 @@ function BandChip({
   return (
     <Link
       href={`/bands/${bandId}`}
-      className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-2.5 py-1.5 hover:bg-zinc-50 transition"
+      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-2.5 py-1.5 hover:bg-white/5 transition"
       title="Zur Band"
     >
-      <span className="h-7 w-7 rounded-full overflow-hidden border border-zinc-200 bg-zinc-100 flex items-center justify-center shrink-0">
+      <span className="h-7 w-7 rounded-full overflow-hidden border border-white/10 bg-black/40 flex items-center justify-center shrink-0">
         {logoURL ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logoURL} alt="" className="h-full w-full object-cover" />
@@ -125,8 +101,8 @@ function BandChip({
       </span>
 
       <span className="min-w-0">
-        <span className="block text-xs font-semibold text-zinc-900 truncate max-w-[160px]">{name}</span>
-        <span className="block text-[11px] text-zinc-500 leading-4 -mt-0.5">Mitglied</span>
+        <span className="block text-xs font-semibold text-white truncate max-w-[160px]">{name}</span>
+        <span className="block text-[11px] text-white/50 leading-4 -mt-0.5">Mitglied</span>
       </span>
     </Link>
   );
@@ -144,20 +120,17 @@ function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <details
-      className="group rounded-3xl border border-zinc-200 bg-white shadow-sm overflow-hidden"
-      open={defaultOpen}
-    >
-      <summary className="cursor-pointer list-none select-none px-5 py-4 hover:bg-zinc-50 transition">
+    <details className="group rounded-3xl border border-white/10 bg-black/30 overflow-hidden" open={defaultOpen}>
+      <summary className="cursor-pointer list-none select-none px-5 py-4 hover:bg-white/5 transition">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-sm font-bold text-zinc-900">{title}</div>
-            {subtitle ? <div className="text-xs text-zinc-500 mt-0.5">{subtitle}</div> : null}
+            <div className="text-sm font-bold text-white">{title}</div>
+            {subtitle ? <div className="text-xs text-white/60 mt-0.5">{subtitle}</div> : null}
           </div>
-          <div className="mt-0.5 rounded-full border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-600 group-open:hidden">
+          <div className="mt-0.5 rounded-full border border-white/10 bg-black/30 px-2 py-1 text-xs text-white/60 group-open:hidden">
             Öffnen
           </div>
-          <div className="mt-0.5 rounded-full border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-600 hidden group-open:inline-flex">
+          <div className="mt-0.5 rounded-full border border-white/10 bg-black/30 px-2 py-1 text-xs text-white/60 hidden group-open:inline-flex">
             Schliessen
           </div>
         </div>
@@ -168,13 +141,6 @@ function SectionCard({
   );
 }
 
-/**
- * Aufräumen oben rechts:
- * - Primary: Speichern
- * - Secondary: In Suche ansehen
- * - Overflow (⋯): Profilbild / Titelbild / Logout
- * -> Schwarz-Weiss Schema, kein "glassy" Look
- */
 function OverflowMenu({
   disabled,
   onAvatarPick,
@@ -197,7 +163,7 @@ function OverflowMenu({
   return (
     <details className="relative">
       <summary
-        className={`list-none cursor-pointer select-none rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 transition ${
+        className={`list-none cursor-pointer select-none rounded-2xl border border-white/10 bg-black/30 px-3 py-2 text-sm font-semibold text-white hover:bg-white/5 transition ${
           disabled ? "opacity-60 pointer-events-none" : ""
         }`}
         aria-label="Mehr"
@@ -206,13 +172,13 @@ function OverflowMenu({
         ⋯
       </summary>
 
-      <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-zinc-200 bg-white shadow-lg overflow-hidden z-20">
-        <div className="px-3 py-2 text-xs font-semibold text-zinc-500 border-b border-zinc-200">Aktionen</div>
+      <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-black/90 backdrop-blur overflow-hidden z-20">
+        <div className="px-3 py-2 text-xs font-semibold text-white/50 border-b border-white/10">Aktionen</div>
 
         <button
           type="button"
           onClick={() => onAvatarPick()}
-          className="w-full text-left px-3 py-2 text-sm text-zinc-900 hover:bg-zinc-50 transition"
+          className="w-full text-left px-3 py-2 text-sm text-white/90 hover:bg-white/5 transition"
         >
           Profilbild ändern…
         </button>
@@ -220,19 +186,19 @@ function OverflowMenu({
           type="button"
           onClick={() => onAvatarRemove()}
           disabled={!avatarEnabled}
-          className={`w-full text-left px-3 py-2 text-sm hover:bg-zinc-50 transition ${
-            avatarEnabled ? "text-zinc-900" : "text-zinc-400 cursor-not-allowed"
+          className={`w-full text-left px-3 py-2 text-sm hover:bg-white/5 transition ${
+            avatarEnabled ? "text-white/90" : "text-white/30 cursor-not-allowed"
           }`}
         >
           Profilbild entfernen
         </button>
 
-        <div className="h-px bg-zinc-200" />
+        <div className="h-px bg-white/10" />
 
         <button
           type="button"
           onClick={() => onCoverPick()}
-          className="w-full text-left px-3 py-2 text-sm text-zinc-900 hover:bg-zinc-50 transition"
+          className="w-full text-left px-3 py-2 text-sm text-white/90 hover:bg-white/5 transition"
         >
           Titelbild ändern…
         </button>
@@ -240,19 +206,19 @@ function OverflowMenu({
           type="button"
           onClick={() => onCoverRemove()}
           disabled={!coverEnabled}
-          className={`w-full text-left px-3 py-2 text-sm hover:bg-zinc-50 transition ${
-            coverEnabled ? "text-zinc-900" : "text-zinc-400 cursor-not-allowed"
+          className={`w-full text-left px-3 py-2 text-sm hover:bg-white/5 transition ${
+            coverEnabled ? "text-white/90" : "text-white/30 cursor-not-allowed"
           }`}
         >
           Titelbild entfernen
         </button>
 
-        <div className="h-px bg-zinc-200" />
+        <div className="h-px bg-white/10" />
 
         <button
           type="button"
           onClick={() => onLogout()}
-          className="w-full text-left px-3 py-2 text-sm text-zinc-900 hover:bg-zinc-50 transition"
+          className="w-full text-left px-3 py-2 text-sm text-white/90 hover:bg-white/5 transition"
         >
           Logout
         </button>
@@ -260,6 +226,10 @@ function OverflowMenu({
     </details>
   );
 }
+
+/** Input/Select Styles (dark) */
+const inputCls =
+  "mt-1 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-2 text-sm text-white placeholder:text-white/40 outline-none focus:ring-1 focus:ring-white/15";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -285,7 +255,7 @@ export default function ProfilePage() {
   const [roles, setRoles] = useState<string[]>([]);
   const [genres, setGenres] = useState<string[]>([]);
 
-  // ✅ Active Band Verknüpfung (Chip oben)
+  // Active Band
   const [activeBand, setActiveBand] = useState<ActiveBand | null>(null);
 
   // Equipment
@@ -350,7 +320,6 @@ export default function ProfilePage() {
         setRoles(Array.isArray(d.roles) ? d.roles : []);
         setGenres(Array.isArray(d.genres) ? d.genres : []);
 
-        // ✅ Band-Verknüpfung laden (wenn vorhanden)
         setActiveBand(d.band?.bandId ? (d.band as ActiveBand) : null);
 
         setEquipment(d.equipment ?? "");
@@ -379,7 +348,11 @@ export default function ProfilePage() {
 
   const canShow = useMemo(() => !loading && !!user, [loading, user]);
   if (loading || !canShow) {
-    return <div className="rounded-2xl border border-zinc-200 bg-white p-4 text-sm text-zinc-700">Lade…</div>;
+    return (
+      <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/70">
+        Lade…
+      </div>
+    );
   }
   if (!user) return null;
 
@@ -388,18 +361,6 @@ export default function ProfilePage() {
   function toggle(setter: (v: string[]) => void, current: string[], value: string) {
     if (current.includes(value)) setter(current.filter((x) => x !== value));
     else setter([...current, value]);
-  }
-
-  function addExperience() {
-    setExperiences((prev) => [...prev, { name: "", role: "", from: "", to: "", link: "" }]);
-  }
-
-  function updateExperience(i: number, patch: Partial<Experience>) {
-    setExperiences((prev) => prev.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
-  }
-
-  function removeExperience(i: number) {
-    setExperiences((prev) => prev.filter((_, idx) => idx !== i));
   }
 
   function normalizeExperiences(xs: Experience[]) {
@@ -457,7 +418,6 @@ export default function ProfilePage() {
         roles,
         genres,
 
-        // ✅ wichtig: Band-Verknüpfung beim Speichern behalten
         band: activeBand ?? null,
 
         equipment: equipment.trim(),
@@ -590,12 +550,12 @@ export default function ProfilePage() {
       {/* Top bar */}
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-zinc-900">Dein Profil</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-white">Dein Profil</h1>
         </div>
       </div>
 
       {/* MAIN WRAP */}
-      <div className="rounded-3xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
+      <div className="rounded-3xl border border-white/10 bg-black/30 overflow-hidden">
         {/* COVER */}
         <div className="relative">
           <div className="h-56 md:h-72 w-full bg-zinc-900">
@@ -603,10 +563,10 @@ export default function ProfilePage() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={coverURL} alt="" className="h-full w-full object-cover" />
             ) : (
-              <div className="h-full w-full bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-700" />
+              <div className="h-full w-full bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-800" />
             )}
           </div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
           <input
             ref={coverFileRef}
@@ -622,11 +582,11 @@ export default function ProfilePage() {
 
         {/* HEADER CARD */}
         <div className="-mt-10 md:-mt-12 px-5 md:px-7">
-          <div className="rounded-3xl border border-zinc-200 bg-white shadow-sm p-4 md:p-5">
+          <div className="rounded-3xl border border-white/10 bg-black/30 p-4 md:p-5">
             <div className="flex flex-col md:flex-row md:items-center gap-4">
               {/* Avatar + identity */}
               <div className="flex items-center gap-4 min-w-0">
-                <div className="h-20 w-20 md:h-24 md:w-24 rounded-3xl bg-white border border-zinc-200 overflow-hidden shadow-sm flex items-center justify-center shrink-0">
+                <div className="h-20 w-20 md:h-24 md:w-24 rounded-3xl bg-black/40 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
                   {photoURL ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={photoURL} alt="" className="h-full w-full object-cover" />
@@ -636,7 +596,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="min-w-0">
-                  <div className="text-lg md:text-2xl font-bold text-zinc-900 leading-tight truncate">
+                  <div className="text-lg md:text-2xl font-bold text-white leading-tight truncate">
                     {displayName || "Dein Name"}
                   </div>
 
@@ -645,17 +605,12 @@ export default function ProfilePage() {
                     <Badge>{KANTON_LABELS[region] ?? region}</Badge>
                     {location ? <Badge>{location}</Badge> : null}
 
-                    {/* ✅ NEU: schöner BandChip statt komischem Logo-Block */}
                     {activeBand?.bandId ? (
-                      <BandChip
-                        bandId={activeBand.bandId}
-                        name={activeBand.name}
-                        logoURL={activeBand.logoURL ?? null}
-                      />
+                      <BandChip bandId={activeBand.bandId} name={activeBand.name} logoURL={activeBand.logoURL ?? null} />
                     ) : null}
                   </div>
 
-                  <div className="mt-2 text-sm text-zinc-600">
+                  <div className="mt-2 text-sm text-white/60">
                     {genres.length ? genres.slice(0, 3).join(" • ") : "Wähle Genres für bessere Matches."}
                   </div>
                 </div>
@@ -666,14 +621,14 @@ export default function ProfilePage() {
                 <button
                   onClick={() => saveProfile()}
                   disabled={isBusy}
-                  className="rounded-xl bg-zinc-900 text-white px-4 py-2 text-sm font-semibold hover:opacity-95 transition disabled:opacity-60"
+                  className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-black hover:opacity-95 transition disabled:opacity-60"
                 >
                   {saving ? "Speichere…" : "Speichern"}
                 </button>
 
                 <Link
                   href="/musicians"
-                  className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 transition"
+                  className="rounded-2xl border border-white/10 bg-black/30 px-4 py-2 text-sm font-semibold text-white/80 hover:bg-white/10 transition"
                 >
                   In Suche ansehen
                 </Link>
@@ -706,10 +661,10 @@ export default function ProfilePage() {
             </div>
 
             {/* Bio preview */}
-            <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4">
-              <div className="text-xs font-semibold text-zinc-700">Bio Vorschau</div>
-              <div className="mt-1 text-sm text-zinc-700 leading-relaxed">
-                {bio?.trim() ? clampText(bio, 220) : <span className="text-zinc-500">Noch keine Bio.</span>}
+            <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
+              <div className="text-xs font-semibold text-white/70">Bio Vorschau</div>
+              <div className="mt-1 text-sm text-white/80 leading-relaxed">
+                {bio?.trim() ? clampText(bio, 220) : <span className="text-white/40">Noch keine Bio.</span>}
               </div>
             </div>
           </div>
@@ -720,9 +675,9 @@ export default function ProfilePage() {
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* LEFT */}
             <aside className="lg:col-span-4 space-y-4">
-              <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
+              <div className="rounded-3xl border border-white/10 bg-black/30 p-5">
                 <div className="flex items-center justify-between">
-                  <div className="text-sm font-bold text-zinc-900">Quick Facts</div>
+                  <div className="text-sm font-bold text-white">Quick Facts</div>
                   {cantonSrc ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -738,54 +693,52 @@ export default function ProfilePage() {
 
                 <div className="mt-4 space-y-3 text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-zinc-500">Status</span>
-                    <span className="font-semibold text-zinc-900">{status}</span>
+                    <span className="text-white/60">Status</span>
+                    <span className="font-semibold text-white">{status}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-zinc-500">Rollen</span>
-                    <span className="font-semibold text-zinc-900">{roles.length ? roles.length : "—"}</span>
+                    <span className="text-white/60">Rollen</span>
+                    <span className="font-semibold text-white">{roles.length ? roles.length : "—"}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-zinc-500">Genres</span>
-                    <span className="font-semibold text-zinc-900">{genres.length ? genres.length : "—"}</span>
+                    <span className="text-white/60">Genres</span>
+                    <span className="font-semibold text-white">{genres.length ? genres.length : "—"}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-zinc-500">Band/Projekt</span>
-                    <span className="font-semibold text-zinc-900">{bandName?.trim() ? bandName.trim() : "—"}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-zinc-500">Mitglied in</span>
-                    <span className="font-semibold text-zinc-900">{activeBand?.name ? activeBand.name : "—"}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-zinc-500">Ort</span>
-                    <span className="font-semibold text-zinc-900">{location?.trim() ? location.trim() : "—"}</span>
+                    <span className="text-white/60">Band/Projekt</span>
+                    <span className="font-semibold text-white">{bandName?.trim() ? bandName.trim() : "—"}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-zinc-500">PLZ</span>
-                    <span className="font-semibold text-zinc-900">{zip?.trim() ? zip.trim() : "—"}</span>
+                    <span className="text-white/60">Mitglied in</span>
+                    <span className="font-semibold text-white">{activeBand?.name ? activeBand.name : "—"}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/60">Ort</span>
+                    <span className="font-semibold text-white">{location?.trim() ? location.trim() : "—"}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/60">PLZ</span>
+                    <span className="font-semibold text-white">{zip?.trim() ? zip.trim() : "—"}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <div className="text-sm font-bold text-zinc-900">Sichtbarkeit-Check</div>
-                <p className="mt-2 text-sm text-zinc-600">
+              <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
+                <div className="text-sm font-bold text-white">Sichtbarkeit-Check</div>
+                <p className="mt-2 text-sm text-white/60">
                   In der Suche wirken Profile am besten mit 1–2 Rollen, 1–2 Genres und einer kurzen Bio.
                 </p>
               </div>
             </aside>
 
-            {/* RIGHT: Editor */}
+            {/* RIGHT */}
             <main className="lg:col-span-8 space-y-5">
               <SectionCard title="Basis" subtitle="Name, Status, Standort" defaultOpen>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <label className="text-sm font-semibold text-zinc-900">Künstlername / Name</label>
+                    <label className="text-sm font-semibold text-white">Künstlername / Name</label>
                     <input
-                      className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-200"
+                      className={inputCls}
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       placeholder="z.B. Maxxax"
@@ -793,42 +746,38 @@ export default function ProfilePage() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-semibold text-zinc-900">Geburtsdatum (privat)</label>
+                    <label className="text-sm font-semibold text-white">Geburtsdatum (privat)</label>
                     <input
                       type="date"
-                      className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-200"
+                      className={inputCls}
                       value={birthday}
                       onChange={(e) => setBirthday(e.target.value)}
                     />
                   </div>
 
                   <div>
-                    <label className="text-sm font-semibold text-zinc-900">Status</label>
+                    <label className="text-sm font-semibold text-white">Status</label>
                     <select
-                      className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-200"
+                      className={inputCls}
                       value={status}
                       onChange={(e) => setStatus(e.target.value as any)}
                     >
                       {STATUSES.map((s) => (
-                        <option key={s} value={s}>
+                        <option key={s} value={s} className="bg-black text-white">
                           {s}
                         </option>
                       ))}
                     </select>
-                    <p className="text-xs text-zinc-500 mt-1">Band = aktiv · Solo = Solo-Artist · Suchend = sucht</p>
+                    <p className="text-xs text-white/50 mt-1">Band = aktiv · Solo = Solo-Artist · Suchend = sucht</p>
                   </div>
                 </div>
 
                 <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="text-sm font-semibold text-zinc-900">Region (Kanton)</label>
-                    <select
-                      className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-200"
-                      value={region}
-                      onChange={(e) => setRegion(e.target.value)}
-                    >
+                    <label className="text-sm font-semibold text-white">Region (Kanton)</label>
+                    <select className={inputCls} value={region} onChange={(e) => setRegion(e.target.value)}>
                       {REGIONS.map((r) => (
-                        <option key={r} value={r}>
+                        <option key={r} value={r} className="bg-black text-white">
                           {r}
                         </option>
                       ))}
@@ -836,9 +785,9 @@ export default function ProfilePage() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-semibold text-zinc-900">PLZ</label>
+                    <label className="text-sm font-semibold text-white">PLZ</label>
                     <input
-                      className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-200"
+                      className={inputCls}
                       value={zip}
                       onChange={(e) => setZip(e.target.value)}
                       placeholder="z.B. 6003"
@@ -847,9 +796,9 @@ export default function ProfilePage() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-semibold text-zinc-900">Ort (optional)</label>
+                    <label className="text-sm font-semibold text-white">Ort (optional)</label>
                     <input
-                      className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-200"
+                      className={inputCls}
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
                       placeholder="z.B. Luzern"
@@ -861,20 +810,20 @@ export default function ProfilePage() {
               <SectionCard title="Musik" subtitle="Band/Projekt, Equipment, Rollen & Genres">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-semibold text-zinc-900">Aktuelle Band / Projekt (optional)</label>
+                    <label className="text-sm font-semibold text-white">Aktuelle Band / Projekt (optional)</label>
                     <input
-                      className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-200"
+                      className={inputCls}
                       value={bandName}
                       onChange={(e) => setBandName(e.target.value)}
                       placeholder="z.B. Aldebaran"
                     />
-                    <p className="text-xs text-zinc-500 mt-1">Wenn du Solo bist, trag hier deinen Projektname ein.</p>
+                    <p className="text-xs text-white/50 mt-1">Wenn du Solo bist, trag hier deinen Projektname ein.</p>
                   </div>
 
                   <div>
-                    <label className="text-sm font-semibold text-zinc-900">Equipment (kurz)</label>
+                    <label className="text-sm font-semibold text-white">Equipment (kurz)</label>
                     <input
-                      className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-200"
+                      className={inputCls}
                       value={equipment}
                       onChange={(e) => setEquipment(e.target.value)}
                       placeholder="z.B. Gibson Les Paul · Helix · SM58"
@@ -883,7 +832,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="mt-5">
-                  <div className="text-sm font-semibold text-zinc-900 mb-2">Rollen</div>
+                  <div className="text-sm font-semibold text-white mb-2">Rollen</div>
                   <div className="flex flex-wrap gap-2">
                     {ROLES.map((r) => {
                       const active = roles.includes(r);
@@ -895,8 +844,8 @@ export default function ProfilePage() {
                           className={[
                             "rounded-full px-3 py-1 text-sm border transition",
                             active
-                              ? "bg-zinc-900 text-white border-zinc-900 font-semibold"
-                              : "bg-white text-zinc-900 border-zinc-200 hover:bg-zinc-50",
+                              ? "bg-white/10 text-white border-white/10 font-semibold"
+                              : "bg-black/30 text-white/80 border-white/10 hover:bg-white/5",
                           ].join(" ")}
                         >
                           {r}
@@ -907,7 +856,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="mt-5">
-                  <div className="text-sm font-semibold text-zinc-900 mb-2">Genres</div>
+                  <div className="text-sm font-semibold text-white mb-2">Genres</div>
                   <div className="flex flex-wrap gap-2">
                     {GENRES.map((g) => {
                       const active = genres.includes(g);
@@ -919,8 +868,8 @@ export default function ProfilePage() {
                           className={[
                             "rounded-full px-3 py-1 text-sm border transition",
                             active
-                              ? "bg-zinc-900 text-white border-zinc-900 font-semibold"
-                              : "bg-white text-zinc-900 border-zinc-200 hover:bg-zinc-50",
+                              ? "bg-white/10 text-white border-white/10 font-semibold"
+                              : "bg-black/30 text-white/80 border-white/10 hover:bg-white/5",
                           ].join(" ")}
                         >
                           {g}
@@ -931,26 +880,24 @@ export default function ProfilePage() {
                 </div>
               </SectionCard>
 
-              {/* ... Rest bleibt wie bei dir (Projekte, Links, Bio, Footer Actions) ... */}
-
               <div className="flex flex-col md:flex-row gap-3 pt-1">
                 <button
                   onClick={() => saveProfile()}
                   disabled={isBusy}
-                  className="rounded-xl bg-zinc-900 text-white px-5 py-2.5 text-sm font-semibold hover:opacity-95 transition disabled:opacity-60"
+                  className="rounded-2xl bg-white px-5 py-2.5 text-sm font-semibold text-black hover:opacity-95 transition disabled:opacity-60"
                 >
                   {saving ? "Speichere…" : "Profil speichern"}
                 </button>
 
                 <Link
                   href="/musicians"
-                  className="rounded-xl border border-zinc-200 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 transition text-center"
+                  className="rounded-2xl border border-white/10 bg-black/30 px-5 py-2.5 text-sm font-semibold text-white/80 hover:bg-white/10 transition text-center"
                 >
                   In Suche ansehen
                 </Link>
               </div>
 
-              {loadingProfile ? <div className="text-sm text-zinc-600">Profil wird geladen…</div> : null}
+              {loadingProfile ? <div className="text-sm text-white/60">Profil wird geladen…</div> : null}
             </main>
           </div>
         </div>

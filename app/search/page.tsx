@@ -3,38 +3,58 @@ import Link from "next/link";
 export default function SearchPage() {
   const items = [
     {
-      title: "Nachrichten",
-      desc: "Deine Chats & Gespräche",
-      href: "/messages", // wenn bei dir anders: z.B. "/nachrichten"
-    },
-    {
       title: "Musiker",
       desc: "Musiker:innen entdecken",
-      href: "/musicians", // falls noch nicht existiert: als nächstes anlegen
+      href: "/musicians",
+      icon: "🎸",
     },
     {
       title: "Bands",
       desc: "Bands entdecken",
-      href: "/bands", // falls noch nicht existiert: als nächstes anlegen
+      href: "/bands",
+      icon: "🥁",
     },
   ];
 
   return (
-    <div className="pb-28">
-      <h1 className="text-xl font-semibold">Suche</h1>
-      <p className="mt-1 text-sm text-zinc-500">
-        Entdecke Nachrichten, Musiker und Bands.
-      </p>
+    <div className="pb-28 space-y-4">
+      {/* Title */}
+      <div>
+        <h1 className="text-lg font-semibold text-white">Suche</h1>
+        <p className="mt-1 text-sm text-white/60">
+          Finde Musiker und Bands.
+        </p>
+      </div>
 
-      <div className="mt-6 grid gap-3">
+      {/* Cards */}
+      <div className="grid gap-3">
         {items.map((it) => (
           <Link
             key={it.title}
             href={it.href}
-            className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm active:scale-[0.99]"
+            className="
+              flex items-center gap-4 rounded-2xl
+              border border-white/10
+              bg-black/30 p-4
+              transition
+              hover:bg-white/5
+              active:scale-[0.99]
+            "
           >
-            <div className="text-base font-semibold">{it.title}</div>
-            <div className="mt-1 text-sm text-zinc-500">{it.desc}</div>
+            {/* Icon */}
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-black/40 text-lg">
+              {it.icon}
+            </div>
+
+            {/* Text */}
+            <div className="min-w-0">
+              <div className="text-base font-semibold text-white">
+                {it.title}
+              </div>
+              <div className="mt-0.5 text-sm text-white/60">
+                {it.desc}
+              </div>
+            </div>
           </Link>
         ))}
       </div>

@@ -29,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {/* Platz für BottomNav auf Mobile */}
           <main className="mx-auto max-w-6xl px-4 py-6 pb-32 md:pb-8">
             {/* Seamless Dark Surface statt weißer Card */}
-            <div className="rounded-2xl border border-white/5 bg-zinc-950/80 p-4 md:p-6">
+            <div className="rounded-2xl border border-black/5 bg-zinc-950/80 p-4 md:p-6">
               {children}
             </div>
           </main>
