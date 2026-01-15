@@ -17,7 +17,7 @@ export const viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="de" className="dark">
-      <body className="min-h-screen bg-[#f7f7fb] text-zinc-900 antialiased">
+      <body className="min-h-screen bg-black text-zinc-100 antialiased">
         <Providers>
           <Header />
 
@@ -26,15 +26,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <HeaderNav />
           </div>
 
-          {/* WICHTIG: auf Mobile Platz für BottomNav */}
-          <main className="mx-auto max-w-6xl px-4 py-8 pb-32 md:pb-8">
-            <div className="rounded-[2.5rem] border border-zinc-200 bg-white p-6 shadow-lg md:p-8">
+          {/* Platz für BottomNav auf Mobile */}
+          <main className="mx-auto max-w-6xl px-4 py-6 pb-32 md:pb-8">
+            {/* Seamless Dark Surface statt weißer Card */}
+            <div className="rounded-2xl border border-white/5 bg-zinc-950/80 p-4 md:p-6">
               {children}
             </div>
           </main>
         </Providers>
 
-        {/* WICHTIG: außerhalb von Providers, damit fixed nie “kaputt” geht */}
+        {/* BottomNav außerhalb Providers */}
         <MobileBottomNav />
       </body>
     </html>
