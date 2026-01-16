@@ -235,6 +235,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const uid = user?.uid ?? null;
+const [isAdmin, setIsAdmin] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -284,6 +285,17 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
   }, [loading, user, router]);
+  useEffect(() => {
+  async function loadAdminClaim() {
+    if (!user) return;
+
+    const token = await user.getIdTokenResult(true);
+    setIsAdmin(!!token.claims.admin);
+  }
+
+  loadAdminClaim();
+}, [user]);
+
 
   useEffect(() => {
     async function load() {
@@ -604,6 +616,11 @@ export default function ProfilePage() {
                     <Badge tone="dark">{status}</Badge>
                     <Badge>{KANTON_LABELS[region] ?? region}</Badge>
                     {location ? <Badge>{location}</Badge> : null}
+{isAdmin && (
+  <span className="inline-flex items-center gap-1 rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs font-bold text-red-400">
+    🛡️ Admin
+  </span>
+)}
 
                     {activeBand?.bandId ? (
                       <BandChip bandId={activeBand.bandId} name={activeBand.name} logoURL={activeBand.logoURL ?? null} />
