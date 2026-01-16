@@ -5,7 +5,7 @@ import HeaderNav from "@/components/HeaderNav";
 import MobileBottomNav from "@/components/MobileBottomNav";
 
 export const metadata = {
-  title: "Bandly | Schweizer Musiker Community",
+  title: "Bandly | Schweizer Bandbörse",
   description: "Finde Musiker:innen & Bands in der Schweiz.",
 };
 
@@ -14,10 +14,14 @@ export const viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="de" className="dark">
-      <body className="min-h-screen bg-black text-zinc-100 antialiased">
+      <body className="min-h-screen bg-black text-white antialiased">
         <Providers>
           <Header />
 
@@ -26,16 +30,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <HeaderNav />
           </div>
 
-          {/* Platz für BottomNav auf Mobile */}
-          <main className="mx-auto max-w-6xl px-4 py-6 pb-32 md:pb-8">
-            {/* Seamless Dark Surface statt weißer Card */}
-            <div className="rounded-2xl border border-black/5 bg-zinc-950/80 p-4 md:p-6">
-              {children}
-            </div>
+          {/* 🔥 FULL-BLEED CONTENT – KEIN RAND */}
+          <main className="min-h-[calc(100vh-64px)] w-full px-0 pt-0 pb-32 md:pb-8">
+            {children}
           </main>
         </Providers>
 
-        {/* BottomNav außerhalb Providers */}
+        {/* Mobile Bottom Navigation */}
         <MobileBottomNav />
       </body>
     </html>

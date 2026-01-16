@@ -19,11 +19,8 @@ export default function Home() {
 
     const ref = doc(db, "profiles", uid);
     const unsub = onSnapshot(ref, (snap) => {
-      if (snap.exists()) {
-        setMyProfile({ uid, ...snap.data() });
-      } else {
-        setMyProfile(null);
-      }
+      if (snap.exists()) setMyProfile({ uid, ...snap.data() });
+      else setMyProfile(null);
     });
 
     return () => unsub();
@@ -31,36 +28,27 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-black text-white">
-      {/* MOBILE APP CONTAINER (auch auf Desktop) */}
-      <div className="mx-auto w-full max-w-md">
+      {/* Hero (full width) */}
+      <section className="w-full px-4 py-10 text-center border-b border-white/10">
+        <h1 className="text-3xl font-bold">🎸 Schweizer Musik Community</h1>
+        <p className="mt-3 text-sm text-white/70">Poste · Teile · Verbinde</p>
+      </section>
 
-        {/* Hero */}
-        <section className="px-4 py-12 text-center">
-          <h1 className="text-3xl font-bold">
-            🎸 Schweizer Musik Community
-          </h1>
-          <p className="mt-3 text-sm text-white/70">
-            Poste · Teile · Verbinde
-          </p>
-        </section>
+      {/* Post Composer (full width) */}
+      <section className="w-full px-4 py-4 border-b border-white/10">
+        {uid && myProfile ? (
+          <PostComposer myProfile={myProfile} />
+        ) : (
+          <div className="rounded-2xl border border-white/10 bg-black/40 p-4 text-sm text-white/60">
+            Melde dich an, um einen Beitrag zu erstellen.
+          </div>
+        )}
+      </section>
 
-        {/* Post Composer */}
-        <section className="px-4">
-          {uid && myProfile ? (
-            <PostComposer myProfile={myProfile} />
-          ) : (
-            <div className="rounded-2xl border border-white/10 bg-black/40 p-4 text-sm text-white/60">
-              Melde dich an, um einen Beitrag zu erstellen.
-            </div>
-          )}
-        </section>
-
-        {/* Feed */}
-        <section className="px-4 pb-28 pt-6">
-          <Feed pageSize={10} />
-        </section>
-
-      </div>
+      {/* Feed (full width, no max-width) */}
+      <section className="w-full pb-28 pt-2">
+        <Feed pageSize={10} />
+      </section>
     </main>
   );
 }
