@@ -123,19 +123,21 @@ export default function ProducerApplyPage() {
     );
   }
 
-  // Wenn schon approved: Hinweis + Link
+  // ✅ Wenn schon approved: Hinweis + Link (FIX: /producers statt /producers/${uid})
   if (existingStatus === "approved") {
     return (
       <div className="space-y-3 rounded-3xl border border-white/10 bg-black/30 p-5">
-        <div className="text-lg font-bold text-white">✅ Du bist bereits Producer</div>
+        <div className="text-lg font-bold text-white">
+          ✅ Du bist bereits Producer
+        </div>
         <div className="text-sm text-white/70">
           Dein Producer-Profil ist freigegeben und in der Suche sichtbar.
         </div>
         <button
-          onClick={() => router.push(`/producers/${uid}`)}
+          onClick={() => router.push(`/producers`)}
           className="rounded-2xl border border-white/10 bg-black/30 px-4 py-2 text-sm font-semibold text-white/80 hover:bg-white/10"
         >
-          Producer-Profil öffnen
+          Producer in Suche ansehen
         </button>
       </div>
     );
@@ -146,19 +148,22 @@ export default function ProducerApplyPage() {
       <div className="rounded-3xl border border-white/10 bg-black/30 p-5">
         <div className="text-xl font-bold text-white">Producer Bewerbung</div>
         <div className="mt-1 text-sm text-white/60">
-          Fülle das Formular aus. Du bekommst erst nach Freigabe ein offizielles Producer-Profil.
+          Fülle das Formular aus. Du bekommst erst nach Freigabe ein offizielles
+          Producer-Profil.
         </div>
 
         {existingStatus === "pending" && (
           <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3 text-sm text-white/70">
-            ⏳ Deine Bewerbung ist bereits eingereicht und wartet auf Prüfung.
-            Du kannst sie hier noch anpassen und erneut speichern.
+            ⏳ Deine Bewerbung ist bereits eingereicht und wartet auf Prüfung. Du
+            kannst sie hier noch anpassen und erneut speichern.
           </div>
         )}
 
         <div className="mt-4 grid gap-3">
           <div>
-            <label className="text-sm font-semibold text-white">Studio / Producer Name *</label>
+            <label className="text-sm font-semibold text-white">
+              Studio / Producer Name *
+            </label>
             <input
               value={studioName}
               onChange={(e) => setStudioName(e.target.value)}
@@ -178,7 +183,9 @@ export default function ProducerApplyPage() {
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-white">Genres (Komma-separiert)</label>
+            <label className="text-sm font-semibold text-white">
+              Genres (Komma-separiert)
+            </label>
             <input
               value={genres}
               onChange={(e) => setGenres(e.target.value)}
@@ -188,7 +195,9 @@ export default function ProducerApplyPage() {
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-white">Links (1 pro Zeile)</label>
+            <label className="text-sm font-semibold text-white">
+              Links (1 pro Zeile)
+            </label>
             <textarea
               value={links}
               onChange={(e) => setLinks(e.target.value)}
@@ -199,13 +208,15 @@ export default function ProducerApplyPage() {
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-white">Motivation / Erfahrung *</label>
+            <label className="text-sm font-semibold text-white">
+              Motivation / Erfahrung *
+            </label>
             <textarea
               value={motivation}
               onChange={(e) => setMotivation(e.target.value)}
               rows={5}
               className="mt-1 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-2 text-sm text-white outline-none"
-              placeholder="Kurz erklären, was du machst und warum Producer-Profil."
+              placeholder="Kurz erklären, was du machst und was dich motiviert."
             />
           </div>
 
