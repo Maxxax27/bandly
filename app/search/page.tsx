@@ -14,6 +14,12 @@ export default function SearchPage() {
       href: "/bands",
       icon: "🥁",
     },
+    {
+      title: "Producer",
+      desc: "Producer entdecken",
+      href: "/producers",
+      icon: "🎚️",
+    },
   ];
 
   return (
@@ -22,7 +28,7 @@ export default function SearchPage() {
       <div>
         <h1 className="text-lg font-semibold text-white">Suche</h1>
         <p className="mt-1 text-sm text-white/60">
-          Finde Musiker und Bands.
+          Finde Musiker, Bands und Producer.
         </p>
       </div>
 
