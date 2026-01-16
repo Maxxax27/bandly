@@ -4,7 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { deletePost } from "@/lib/posts";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  deleteDoc,
+} from "firebase/firestore";
 
 // ⏱️ Zeitformatierung
 function formatPostTime(timestamp: any) {
@@ -38,7 +49,7 @@ export function PostCard({ post }: { post: any }) {
   const [isBandAdmin, setIsBandAdmin] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // ✅ Live-Update Zeit
+  // Live Zeit
   const [, forceTick] = useState(0);
   useEffect(() => {
     forceTick((t) => t + 1);
@@ -51,21 +62,19 @@ export function PostCard({ post }: { post: any }) {
     if (a.type === "band") router.push(`/bands/${a.bandId}`);
   };
 
-  const canDeleteMusicianPost = useMemo(() => {
-    return !!uid && a?.type === "musician" && a?.uid === uid;
-  }, [uid, a]);
+  const canDeleteMusicianPost = useMemo(
+    () => !!uid && a?.type === "musician" && a?.uid === uid,
+    [uid, a]
+  );
 
   useEffect(() => {
     async function checkAdmin() {
       setIsBandAdmin(false);
       if (!uid || a?.type !== "band" || !a?.bandId) return;
-
       const snap = await getDoc(doc(db, "bands", a.bandId));
       if (!snap.exists()) return;
-
       setIsBandAdmin(snap.data()?.members?.[uid]?.role === "admin");
     }
-
     checkAdmin();
   }, [uid, a?.type, a?.bandId]);
 
@@ -74,10 +83,8 @@ export function PostCard({ post }: { post: any }) {
   async function onDelete(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-
     if (!canDelete) return;
     if (!window.confirm("Post wirklich löschen?")) return;
-
     try {
       setDeleting(true);
       await deletePost(post.id);
@@ -86,56 +93,100 @@ export function PostCard({ post }: { post: any }) {
     }
   }
 
+  // -----------------------------
+  // 💬 Kommentare
+  // -----------------------------
+  const [comments, setComments] = useState<any[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [commentText, setCommentText] = useState("");
+  const [commentSending, setCommentSending] = useState(false);
+  const [commentError, setCommentError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!uid) {
+      setComments([]);
+      setCommentsLoading(false);
+      return;
+    }
+
+    setCommentsLoading(true);
+    const q = query(
+      collection(db, "posts", post.id, "comments"),
+      orderBy("createdAt", "desc"),
+      limit(10)
+    );
+
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setComments(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setCommentsLoading(false);
+      },
+      () => {
+        setCommentsLoading(false);
+        setCommentError("Kommentare konnten nicht geladen werden.");
+      }
+    );
+
+    return () => unsub();
+  }, [post.id, uid]);
+
+  async function submitComment() {
+    if (!uid) return;
+    const clean = commentText.trim();
+    if (!clean) return;
+
+    setCommentSending(true);
+    setCommentError(null);
+
+    try {
+      await addDoc(collection(db, "posts", post.id, "comments"), {
+        authorId: uid,
+        authorName: auth.currentUser?.displayName ?? "",
+        authorPhotoURL: auth.currentUser?.photoURL ?? "",
+        text: clean,
+        createdAt: serverTimestamp(),
+        editedAt: null,
+      });
+      setCommentText("");
+    } catch {
+      setCommentError("Kommentar konnte nicht gesendet werden.");
+    } finally {
+      setCommentSending(false);
+    }
+  }
+
+  async function deleteComment(commentId: string) {
+    if (!uid) return;
+    if (!window.confirm("Kommentar wirklich löschen?")) return;
+
+    try {
+      await deleteDoc(doc(db, "posts", post.id, "comments", commentId));
+    } catch (err: any) {
+      setCommentError(
+        err?.code === "permission-denied"
+          ? "Keine Berechtigung zum Löschen."
+          : "Kommentar konnte nicht gelöscht werden."
+      );
+    }
+  }
+
   return (
     <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+      {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <button onClick={goAuthor} className="shrink-0">
+          <button onClick={goAuthor}>
             <img
               src={a.photoURL ?? "/default-avatar.png"}
-              alt={a.displayName}
               className="h-10 w-10 rounded-full object-cover"
+              alt={a.displayName}
             />
           </button>
-
-          <div className="min-w-0">
-            {/* Name */}
+          <div>
             <button onClick={goAuthor} className="font-semibold hover:underline">
               {a.displayName}
             </button>
-
-            {/* 👤 gepostet von @Name (nur bei Band) */}
-            {a.type === "band" && post.postedBy?.uid && (
-              <div className="mt-1 flex items-center gap-2 text-xs text-white/70">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(`/musicians/${post.postedBy.uid}`);
-                  }}
-                >
-                  <img
-                    src={post.postedBy.photoURL || "/default-avatar.png"}
-                    alt={post.postedBy.displayName}
-                    className="h-5 w-5 rounded-full object-cover border border-white/30"
-                  />
-                </button>
-
-                <span>
-                  gepostet von{" "}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(`/musicians/${post.postedBy.uid}`);
-                    }}
-                    className="font-medium text-white hover:underline"
-                  >
-                    @{post.postedBy.displayName}
-                  </button>
-                </span>
-              </div>
-            )}
-
-            {/* ⏱️ Zeit */}
             <div className="text-xs text-white/50">
               {formatPostTime(post.createdAt)}
             </div>
@@ -146,7 +197,7 @@ export function PostCard({ post }: { post: any }) {
           <button
             onClick={onDelete}
             disabled={deleting}
-            className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white/80 hover:bg-white/10 disabled:opacity-40"
+            className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm hover:bg-white/10"
           >
             🗑️
           </button>
@@ -158,79 +209,93 @@ export function PostCard({ post }: { post: any }) {
         {post.content}
       </div>
 
-      {/* ✅ Attachments (Bilder / Audio / Dokumente) */}
-      {Array.isArray(post.attachments) && post.attachments.length > 0 && (
-        <div className="mt-3 space-y-3">
-          {post.attachments.map((att: any, idx: number) => {
-            // 🖼️ Image
-            if (att.type === "image") {
-              return (
-                <img
-                  key={`${att.path ?? att.url}-${idx}`}
-                  src={att.url}
-                  alt={att.name ?? "Bild"}
-                  loading="lazy"
-                  className="w-full max-h-[460px] rounded-2xl border border-white/10 object-cover bg-black/30"
+      {/* 💬 Kommentare + Counter */}
+      <div className="mt-4 border-t border-white/10 pt-3">
+        <div className="flex justify-between text-sm text-white/70">
+          <span>
+            💬 {post.commentCount ?? 0} Kommentar
+            {(post.commentCount ?? 0) === 1 ? "" : "e"}
+          </span>
+          <span className="text-xs text-white/40">Kommentieren</span>
+        </div>
+
+        <div className="mt-3">
+          {!uid ? (
+            <div className="text-xs text-white/50">
+              Bitte einloggen, um zu kommentieren.
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <input
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Kommentar schreiben…"
+                  className="flex-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm"
+                  maxLength={500}
                 />
-              );
-            }
-
-            // 🎵 Audio
-            if (att.type === "audio") {
-              return (
-                <div
-                  key={`${att.path ?? att.url}-${idx}`}
-                  className="rounded-2xl border border-white/10 bg-black/30 p-3"
+                <button
+                  onClick={submitComment}
+                  disabled={commentSending || !commentText.trim()}
+                  className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm hover:bg-white/10 disabled:opacity-40"
                 >
-                  <div className="mb-2 truncate text-sm text-white/80">
-                    🎵 {att.name ?? "Audio"}
+                  {commentSending ? "…" : "Senden"}
+                </button>
+              </div>
+
+              {commentError && (
+                <div className="mt-2 text-xs text-red-400">{commentError}</div>
+              )}
+
+              <div className="mt-3 space-y-2">
+                {commentsLoading ? (
+                  <div className="text-xs text-white/50">Lade Kommentare…</div>
+                ) : comments.length === 0 ? (
+                  <div className="text-xs text-white/50">
+                    Noch keine Kommentare.
                   </div>
-                  <audio controls src={att.url} className="w-full" />
-                </div>
-              );
-            }
+                ) : (
+                  comments.map((c) => (
+                    <div
+                      key={c.id}
+                      className="rounded-xl border border-white/10 bg-black/25 p-2"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={c.authorPhotoURL || "/default-avatar.png"}
+                            alt={c.authorName || "User"}
+                            className="h-6 w-6 rounded-full object-cover"
+                          />
+                          <div className="text-xs text-white/70">
+                            <span className="font-medium text-white/80">
+                              {c.authorName || "User"}
+                            </span>
+                          </div>
+                        </div>
 
-            // 📄 Document (default)
-            return (
-              <a
-                key={`${att.path ?? att.url}-${idx}`}
-                href={att.url}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white/80 hover:bg-black/40"
-              >
-                <span className="shrink-0">📎</span>
-                <span className="min-w-0 truncate">
-                  {att.name ?? "Datei öffnen"}
-                </span>
-              </a>
-            );
-          })}
-        </div>
-      )}
+                        {uid && c.authorId === uid && (
+                          <button
+                            onClick={() => deleteComment(c.id)}
+                            className="text-xs text-white/60 hover:text-white"
+                            title="Kommentar löschen"
+                          >
+                            🗑️
+                          </button>
+                        )}
+                      </div>
 
-      {/* 🔗 Inserat / Event Verlinkung */}
-      {post.type === "listing" && post.ref?.id && (
-        <div className="mt-3">
-          <button
-            onClick={() => router.push(`/listings/${post.ref.id}`)}
-            className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white/80 hover:bg-white/10"
-          >
-            👉 Inserat ansehen
-          </button>
+                      <div className="mt-1 whitespace-pre-wrap text-sm text-white/90">
+                        {c.text}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          )}
         </div>
-      )}
-
-      {post.type === "event" && post.ref?.id && (
-        <div className="mt-3">
-          <button
-            onClick={() => router.push(`/events/${post.ref.id}`)}
-            className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white/80 hover:bg-white/10"
-          >
-            👉 Event ansehen
-          </button>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

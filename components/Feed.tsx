@@ -2,29 +2,71 @@
 
 import { useEffect, useState } from "react";
 import { collection, onSnapshot, orderBy, query, limit } from "firebase/firestore";
+import { onAuthStateChanged, getAuth } from "firebase/auth";
 import { db } from "@/lib/firebase";
 import { PostCard } from "@/components/PostCard";
 
 export function Feed({ pageSize = 20 }: { pageSize?: number }) {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userReady, setUserReady] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
+  // 1) Auth-Status abwarten
   useEffect(() => {
+    const unsub = onAuthStateChanged(getAuth(), (u) => {
+      setUser(u);
+      setUserReady(true);
+    });
+    return () => unsub();
+  }, []);
+
+  // 2) Posts nur laden, wenn User da ist
+  useEffect(() => {
+    if (!userReady) return;
+
+    // nicht eingeloggt => nichts subscriben
+    if (!user) {
+      setPosts([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
     const q = query(
       collection(db, "posts"),
       orderBy("createdAt", "desc"),
       limit(pageSize)
     );
 
-    const unsub = onSnapshot(q, (snap) => {
-      setPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    });
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setLoading(false);
+      },
+      (err) => {
+        // permission-denied kommt hier, wenn Rules auth verlangen
+        setLoading(false);
+        if (err?.code === "permission-denied") {
+          setError("Bitte einloggen, um den Feed zu sehen.");
+        } else {
+          setError("Feed konnte nicht geladen werden.");
+        }
+      }
+    );
 
     return () => unsub();
-  }, [pageSize]);
+  }, [pageSize, userReady, user]);
 
+  if (!userReady) return <div className="text-white/60">Prüfe Login…</div>;
+  if (!user) return <div className="text-white/60">Bitte einloggen, um den Feed zu sehen.</div>;
   if (loading) return <div className="text-white/60">Feed lädt…</div>;
+  if (error) return <div className="text-red-400">{error}</div>;
 
   return (
     <div className="space-y-3">

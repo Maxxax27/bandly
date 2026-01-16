@@ -547,12 +547,12 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      {/* Top bar */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white">Dein Profil</h1>
-        </div>
-      </div>
+{/* Top bar */}
+<div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+  <div>
+    <h1 className="text-2xl md:text-3xl font-bold text-white">Dein Profil</h1>
+  </div>
+</div>
 
       {/* MAIN WRAP */}
       <div className="rounded-3xl border border-white/10 bg-black/30 overflow-hidden">

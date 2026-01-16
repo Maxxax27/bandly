@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { auth } from "@/lib/firebase";
+import { onAuthStateChanged, type User } from "firebase/auth";
+import { useEffect, useState } from "react";
 
 function clsx(...c: Array<string | false | null | undefined>) {
   return c.filter(Boolean).join(" ");
@@ -15,16 +17,20 @@ function isActive(pathname: string, href: string) {
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
-  const uid = auth.currentUser?.uid;
+
+  const [user, setUser] = useState<User | null>(auth.currentUser);
+  const uid = user?.uid;
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
+    return () => unsub();
+  }, []);
 
   // ✅ passe das an, falls deine Login-Seite anders heißt
   const loginHref = "/login";
 
-  // ✅ Edit-Route (empfohlen). Falls du eine andere Edit-Route hast, hier ändern:
-  const editProfileHref = "/profile/edit";
-
-  // Wenn eingeloggt -> direkt Edit, sonst -> Login
-  const profileHref = uid ? editProfileHref : loginHref;
+  // ✅ Wenn eingeloggt -> /profile (app/profile/page.tsx), sonst -> Login
+  const profileHref = uid ? "/profile" : loginHref;
   const profileLabel = uid ? "Profil" : "Login";
 
   const items = [
@@ -32,6 +38,7 @@ export default function MobileBottomNav() {
     { href: "/search", label: "Suche", icon: SearchIcon },
     { href: "/listings", label: "Inserate", icon: TagIcon },
     { href: "/events", label: "Events", icon: CalendarIcon },
+    // Profil/Login wird unten als Spezialfall gerendert (Avatar)
     { href: profileHref, label: profileLabel, icon: UserIcon },
   ];
 
@@ -43,10 +50,49 @@ export default function MobileBottomNav() {
     >
       <div className="mx-auto w-full max-w-md px-2">
         <ul className="grid grid-cols-5 gap-1 py-2">
-          {items.map((it) => {
+          {items.map((it, idx) => {
+            const isProfileItem = idx === items.length - 1;
             const active = isActive(pathname, it.href);
             const Icon = it.icon;
 
+            // ✅ Letzter Tab: Avatar statt UserIcon, wenn eingeloggt
+            if (isProfileItem && uid) {
+              return (
+                <li key={it.label}>
+                  <Link
+                    href={it.href}
+                    className={clsx(
+                      "flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs",
+                      active ? "text-white" : "text-white/60 hover:text-white"
+                    )}
+                    aria-current={active ? "page" : undefined}
+                    aria-label="Profil"
+                  >
+                    <span
+                      className={clsx(
+                        "grid place-items-center rounded-lg p-1",
+                        active && "bg-white/10"
+                      )}
+                      aria-hidden="true"
+                    >
+                      <img
+                        src={user.photoURL ?? "/default-avatar.png"}
+                        alt="Profil"
+                        className={clsx(
+                          "h-[22px] w-[22px] rounded-full object-cover border",
+                          active ? "border-white/60" : "border-white/20"
+                        )}
+                      />
+                    </span>
+                    <span className={clsx(active && "font-semibold")}>
+                      Profil
+                    </span>
+                  </Link>
+                </li>
+              );
+            }
+
+            // ✅ Normal (inkl. Login wenn nicht eingeloggt)
             return (
               <li key={it.label}>
                 <Link
