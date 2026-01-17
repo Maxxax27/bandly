@@ -6,6 +6,7 @@ import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { useAuth } from "@/lib/auth-context";
 import { useUnreadCount } from "@/lib/useUnreadCount";
+import ProducerRoleSwitch from "@/components/ProducerRoleSwitch";
 
 export default function Header() {
   const { user } = useAuth();
@@ -34,12 +35,8 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur">
       <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
-        
         {/* Logo */}
-        <Link
-          href="/"
-          className="flex items-center gap-2 font-bold text-lg text-white"
-        >
+        <Link href="/" className="flex items-center gap-2 font-bold text-lg text-white">
           <span className="text-xl">🎸</span>
           Bandly
         </Link>
@@ -63,10 +60,7 @@ export default function Header() {
           </Link>
 
           {/* Nachrichten */}
-          <Link
-            href="/messages"
-            className="relative inline-flex items-center gap-2 hover:text-white transition"
-          >
+          <Link href="/messages" className="relative inline-flex items-center gap-2 hover:text-white transition">
             <span>Nachrichten</span>
 
             {unread > 0 && (
@@ -104,7 +98,7 @@ export default function Header() {
           {/* Nachrichten */}
           <Link
             href="/messages"
-            className="relative inline-flex items-center justify-center rounded-xl p-2 text-white/80 hover:text-white"
+            className="relative inline-flex items-center justify-center rounded-xl p-2 text-white/80 hover:text-white shrink-0"
             aria-label="Nachrichten"
           >
             <svg
@@ -131,11 +125,16 @@ export default function Header() {
             )}
           </Link>
 
+          {/* ✅ Producer Switch (Mobile) */}
+          <div className="shrink-0">
+            <ProducerRoleSwitch />
+          </div>
+
           {/* ✅ Admin Inbox (Mobile, nur Admin) */}
           {isAdmin && (
             <Link
               href="/admin/inbox"
-              className="inline-flex items-center justify-center rounded-xl p-2 text-white/80 hover:text-white"
+              className="inline-flex items-center justify-center rounded-xl p-2 text-white/80 hover:text-white shrink-0"
               aria-label="Admin Inbox"
               title="Admin Inbox"
             >

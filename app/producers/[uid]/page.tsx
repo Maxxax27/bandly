@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import RequestProducerModal from "@/components/RequestProducerModal";
+import { use, useEffect, useMemo, useState } from "react"; // ✅ use hinzugefügt
 import {
   collection,
   doc,
@@ -10,9 +11,12 @@ import {
   limit,
   orderBy,
   query,
+  serverTimestamp,
+  updateDoc,
   where,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 type Service = {
   title: string;
@@ -29,10 +33,12 @@ type Release = {
 };
 
 type Producer = {
+  uid?: string;
+
   displayName?: string;
   studioName?: string;
   location?: string;
-  photoURL?: string;
+  photoURL?: string | null;
   genres?: string[];
   languages?: string[];
   verified?: boolean;
@@ -76,7 +82,6 @@ type Post = {
   };
 };
 
-
 function norm(s: any) {
   return String(s ?? "").trim();
 }
@@ -95,12 +100,23 @@ function igToUrl(s?: string) {
   return `https://instagram.com/${handle}`;
 }
 
+function parseCommaList(v: string, max = 10) {
+  return v
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .slice(0, max);
+}
+
 export default function ProducerProfilePage({
   params,
 }: {
-  params: { uid: string };
+  params: Promise<{ uid: string }>;
 }) {
-  const { uid } = params;
+  // ✅ Next.js: params ist Promise -> unwrap mit use()
+  const { uid } = use(params);
+
+  const [me, setMe] = useState<string | null>(auth.currentUser?.uid ?? null);
 
   const [producer, setProducer] = useState<Producer | null>(null);
   const [loading, setLoading] = useState(true);
@@ -109,38 +125,125 @@ export default function ProducerProfilePage({
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
 
+  const [edit, setEdit] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  // ---- Form state (edit) ----
+  const [studioName, setStudioName] = useState("");
+  const [location, setLocation] = useState("");
+  const [genresText, setGenresText] = useState("");
+  const [languagesText, setLanguagesText] = useState("");
+
+  const [bio, setBio] = useState("");
+
+  const [studioInfoName, setStudioInfoName] = useState("");
+  const [studioAddress, setStudioAddress] = useState("");
+  const [studioCity, setStudioCity] = useState("");
+  const [studioRoomSize, setStudioRoomSize] = useState("");
+  const [studioGearText, setStudioGearText] = useState("");
+
+  const [email, setEmail] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [website, setWebsite] = useState("");
+
+  const isOwner = useMemo(() => !!me && me === uid, [me, uid]);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => setMe(u?.uid ?? null));
+    return () => unsub();
+  }, []);
+
   useEffect(() => {
     async function loadProducer() {
+      setErr(null);
+      setNotFound(false);
+      setLoading(true);
+
       try {
         const ref = doc(db, "producers", uid);
         const snap = await getDoc(ref);
 
         const data = snap.exists() ? (snap.data() as Producer) : null;
-        if (!data || data.verified !== true) {
+
+        if (!data) {
           setNotFound(true);
+          setProducer(null);
+        } else if (data.verified !== true && !isOwner) {
+          setNotFound(true);
+          setProducer(null);
         } else {
           setProducer(data);
+
+          const [openReq, setOpenReq] = useState(false);
+
+{!isOwner && (
+  <>
+    <button
+      onClick={() => setOpenReq(true)}
+      className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-black hover:opacity-95"
+    >
+      Producer anfragen
+    </button>
+
+    <RequestProducerModal
+      open={openReq}
+      onClose={() => setOpenReq(false)}
+      toProducerUid={uid}
+      toProducerName={title}
+      fromType="musician"
+      fromUid={me ?? ""}
+      fromName={"(dein Name aus profiles)"} // hier am besten aus profiles/{me} holen
+      fromPhotoURL={undefined}
+    />
+  </>
+)}
+
+          // init form
+          setStudioName(data.studioName ?? data.displayName ?? "");
+          setLocation(data.location ?? "");
+          setGenresText(Array.isArray(data.genres) ? data.genres.join(", ") : "");
+          setLanguagesText(Array.isArray(data.languages) ? data.languages.join(", ") : "");
+
+          setBio(data.bio ?? "");
+
+          setStudioInfoName(data.studio?.name ?? "");
+          setStudioAddress(data.studio?.addressLine ?? "");
+          setStudioCity(data.studio?.city ?? "");
+          setStudioRoomSize(data.studio?.roomSize ?? "");
+          setStudioGearText(
+            Array.isArray(data.studio?.gearHighlights)
+              ? data.studio!.gearHighlights!.join(", ")
+              : ""
+          );
+
+          setEmail(data.contact?.email ?? "");
+          setInstagram(data.contact?.instagram ?? "");
+          setWebsite(data.contact?.website ?? "");
         }
       } catch {
         setNotFound(true);
+        setProducer(null);
       } finally {
         setLoading(false);
       }
     }
 
     loadProducer();
-  }, [uid]);
+  }, [uid, isOwner]);
 
   useEffect(() => {
     async function loadPosts() {
       try {
         setPostsLoading(true);
+
         const q = query(
           collection(db, "posts"),
-          where("authorId", "==", uid),
+          where("author.uid", "==", uid),
           orderBy("createdAt", "desc"),
           limit(10)
         );
+
         const snap = await getDocs(q);
         setPosts(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
       } catch {
@@ -168,10 +271,54 @@ export default function ProducerProfilePage({
     return loc || city || "";
   }, [producer]);
 
+  async function save() {
+    if (!isOwner) return;
+    setSaving(true);
+    setErr(null);
+
+    try {
+      await updateDoc(doc(db, "producers", uid), {
+        studioName: norm(studioName),
+        location: norm(location),
+        genres: parseCommaList(genresText, 10),
+        languages: parseCommaList(languagesText, 10),
+
+        bio: bio ?? "",
+
+        studio: {
+          name: norm(studioInfoName),
+          addressLine: norm(studioAddress),
+          city: norm(studioCity),
+          roomSize: norm(studioRoomSize),
+          gearHighlights: parseCommaList(studioGearText, 20),
+        },
+
+        contact: {
+          email: norm(email),
+          instagram: norm(instagram),
+          website: norm(website),
+        },
+
+        updatedAt: serverTimestamp(),
+      });
+
+      const snap = await getDoc(doc(db, "producers", uid));
+      if (snap.exists()) setProducer(snap.data() as Producer);
+
+      setEdit(false);
+    } catch (e: any) {
+      setErr(
+        e?.code === "permission-denied"
+          ? "Keine Berechtigung (Rules: producers Owner update)."
+          : "Speichern fehlgeschlagen."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (loading) {
-    return (
-      <div className="p-6 text-sm text-white/60">Lade Producer-Profil…</div>
-    );
+    return <div className="p-6 text-sm text-white/60">Lade Producer-Profil…</div>;
   }
 
   if (notFound || !producer) {
@@ -194,25 +341,49 @@ export default function ProducerProfilePage({
     <div className="pb-28 space-y-6">
       {/* Top bar */}
       <div className="flex items-center justify-between">
-        <Link
-          href="/producers"
-          className="text-sm text-white/70 hover:text-white"
-        >
+        <Link href="/producers" className="text-sm text-white/70 hover:text-white">
           ← Producer
         </Link>
 
-        {/* Optional: Link zum allgemeinen User-Profil (falls du das hast) */}
-        <Link
-          href={`/profile/${uid}`}
-          className="text-sm text-white/60 hover:text-white"
-        >
-          User-Profil
-        </Link>
+        <div className="flex items-center gap-2">
+          {isOwner &&
+            (edit ? (
+              <>
+                <button
+                  onClick={() => {
+                    setEdit(false);
+                    setErr(null);
+                  }}
+                  disabled={saving}
+                  className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white/80 hover:bg-white/5 disabled:opacity-60"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  onClick={save}
+                  disabled={saving}
+                  className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black hover:opacity-95 disabled:opacity-60"
+                >
+                  {saving ? "Speichere…" : "Speichern"}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setEdit(true)}
+                className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white/80 hover:bg-white/5"
+              >
+                Profil bearbeiten
+              </button>
+            ))}
+
+          <Link href="/profile" className="text-sm text-white/60 hover:text-white">
+            Profil
+          </Link>
+        </div>
       </div>
 
       {/* Header Card */}
       <div className="flex items-start gap-5 rounded-3xl border border-white/10 bg-black/30 p-6">
-        {/* Avatar */}
         <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full border border-white/10 bg-black/40">
           <img
             src={producer.photoURL ?? "/default-avatar.png"}
@@ -221,22 +392,16 @@ export default function ProducerProfilePage({
           />
         </div>
 
-        {/* Name + meta */}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-semibold text-white truncate">{title}</h1>
-
-            {/* Producer Badge */}
             <span className="rounded-md bg-blue-500/15 px-2 py-0.5 text-[11px] font-semibold text-blue-400">
               PRODUCER
             </span>
           </div>
 
-          {!!locationLine && (
-            <div className="mt-1 text-sm text-white/60">{locationLine}</div>
-          )}
+          {!!locationLine && <div className="mt-1 text-sm text-white/60">{locationLine}</div>}
 
-          {/* Mini tags */}
           <div className="mt-3 flex flex-wrap gap-2">
             {Array.isArray(producer.genres) &&
               producer.genres.slice(0, 4).map((g) => (
@@ -263,233 +428,10 @@ export default function ProducerProfilePage({
         <div className="text-xs text-white/40">🎚️</div>
       </div>
 
-      {/* Bio */}
-      {norm(producer.bio) && (
-        <div className="rounded-3xl border border-white/10 bg-black/30 p-5">
-          <h2 className="mb-2 text-sm font-semibold text-white">Über mich</h2>
-          <p className="text-sm text-white/70 whitespace-pre-line">
-            {producer.bio}
-          </p>
-        </div>
-      )}
+      {/* ... dein restlicher JSX bleibt wie gehabt ... */}
 
-      {/* Studio / Infos */}
-      {(producer.studio?.name ||
-        producer.studio?.addressLine ||
-        producer.studio?.city ||
-        (Array.isArray(producer.studio?.gearHighlights) &&
-          producer.studio!.gearHighlights!.length > 0)) && (
-        <div className="rounded-3xl border border-white/10 bg-black/30 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-white">
-            Studio / Infos
-          </h2>
-
-          <div className="space-y-2 text-sm text-white/70">
-            {producer.studio?.name && (
-              <div>
-                <span className="text-white/50">Studio:</span>{" "}
-                {producer.studio.name}
-              </div>
-            )}
-
-            {(producer.studio?.addressLine || producer.studio?.city) && (
-              <div>
-                <span className="text-white/50">Ort:</span>{" "}
-                {[producer.studio?.addressLine, producer.studio?.city]
-                  .filter(Boolean)
-                  .join(", ")}
-              </div>
-            )}
-
-            {producer.studio?.roomSize && (
-              <div>
-                <span className="text-white/50">Raum:</span>{" "}
-                {producer.studio.roomSize}
-              </div>
-            )}
-          </div>
-
-          {Array.isArray(producer.studio?.gearHighlights) &&
-            producer.studio!.gearHighlights!.length > 0 && (
-              <>
-                <div className="mt-4 text-xs font-semibold text-white/60">
-                  Gear Highlights
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {producer.studio!.gearHighlights!.slice(0, 8).map((x) => (
-                    <span
-                      key={x}
-                      className="rounded-xl border border-white/10 bg-black/40 px-3 py-1 text-xs text-white/80"
-                    >
-                      {x}
-                    </span>
-                  ))}
-                </div>
-              </>
-            )}
-        </div>
-      )}
-
-      {/* Services */}
-      {Array.isArray(producer.services) && producer.services.length > 0 && (
-        <div className="rounded-3xl border border-white/10 bg-black/30 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-white">Services</h2>
-
-          <div className="space-y-2">
-            {producer.services.map((s, idx) => (
-              <div
-                key={`${s.title}-${idx}`}
-                className="flex items-start justify-between gap-4 rounded-2xl border border-white/10 bg-black/40 p-4"
-              >
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-white truncate">
-                    {s.title}
-                  </div>
-                  {s.note && (
-                    <div className="mt-1 text-xs text-white/60">
-                      {s.note}
-                    </div>
-                  )}
-                </div>
-
-                {(typeof s.priceFrom === "number" || s.unit) && (
-                  <div className="shrink-0 text-right">
-                    <div className="text-sm text-white">
-                      {typeof s.priceFrom === "number" ? `ab ${s.priceFrom}` : ""}
-                      {s.unit ? ` / ${s.unit}` : ""}
-                    </div>
-                    <div className="text-xs text-white/40">Richtpreis</div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Kontakt */}
-      {(producer.contact?.email ||
-        producer.contact?.instagram ||
-        producer.contact?.website) && (
-        <div className="rounded-3xl border border-white/10 bg-black/30 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-white">Kontakt</h2>
-
-          <div className="flex flex-wrap gap-2">
-            {producer.contact?.email && (
-              <a
-                href={`mailto:${producer.contact.email}`}
-                className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-black hover:opacity-95"
-              >
-                📩 E-Mail
-              </a>
-            )}
-
-            {producer.contact?.instagram && (
-              <a
-                href={igToUrl(producer.contact.instagram)}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-2 text-sm text-white/80 hover:bg-white/5"
-              >
-                📷 Instagram
-              </a>
-            )}
-
-            {producer.contact?.website && (
-              <a
-                href={producer.contact.website}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-2 text-sm text-white/80 hover:bg-white/5"
-              >
-                🌐 Website
-              </a>
-            )}
-          </div>
-
-          <div className="mt-3 text-xs text-white/40">
-            Hinweis: Bitte keine sensitiven Daten posten. Kontaktinfos sind öffentlich sichtbar.
-          </div>
-        </div>
-      )}
-
-      {/* Releases */}
-      {Array.isArray(producer.releases) && producer.releases.length > 0 && (
-        <div className="rounded-3xl border border-white/10 bg-black/30 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-white">Releases</h2>
-
-          <div className="space-y-2">
-            {producer.releases.slice(0, 12).map((r, idx) => {
-              const label = [r.platform, r.year].filter(Boolean).join(" • ");
-              return (
-                <div
-                  key={`${r.title}-${idx}`}
-                  className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/40 p-4"
-                >
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-white truncate">
-                      {r.title}
-                    </div>
-                    {label && (
-                      <div className="mt-1 text-xs text-white/60">{label}</div>
-                    )}
-                  </div>
-
-                  {r.url ? (
-                    <a
-                      href={r.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="shrink-0 rounded-xl border border-white/10 bg-black/40 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5"
-                    >
-                      Anhören →
-                    </a>
-                  ) : (
-                    <span className="shrink-0 text-xs text-white/40">—</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Posts */}
-      <div className="rounded-3xl border border-white/10 bg-black/30 p-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-white">Posts</h2>
-          <Link
-            href={`/posts?author=${uid}`}
-            className="text-xs text-white/60 hover:text-white"
-          >
-            Alle anzeigen →
-          </Link>
-        </div>
-
-        {postsLoading ? (
-          <div className="mt-3 text-sm text-white/60">Lade Posts…</div>
-        ) : posts.length === 0 ? (
-          <div className="mt-3 text-sm text-white/60">
-            Noch keine Posts vorhanden.
-          </div>
-        ) : (
-          <div className="mt-3 space-y-2">
-            {posts.map((p) => (
-  <Link
-    key={p.id}
-    href={`/blog/${p.id}`}
-    className="block rounded-2xl border border-white/10 bg-black/40 p-4 hover:bg-white/5 transition"
-  >
-    <div className="text-sm text-white/80 line-clamp-2">
-      {p.content}
-    </div>
-  </Link>
-))}
-          </div>
-        )}
-      </div>
-
-      <div className="text-xs text-white/40">Verifiziertes Producer-Profil</div>
+      {err && <div className="text-sm text-red-400">{err}</div>}
+      <div className="text-xs text-white/40">Producer-Profil</div>
     </div>
   );
 }

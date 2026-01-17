@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import {
   doc,
-  collection,
   getDoc,
   serverTimestamp,
   setDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
@@ -88,56 +88,87 @@ export default function ProducerApplyPage() {
     setError(null);
 
     try {
-      // ✅ 1) Bewerbung speichern/aktualisieren
-      await setDoc(
-        doc(db, "producerApplications", uid),
-        {
-          uid,
-          displayName: auth.currentUser?.displayName ?? "",
-          email: auth.currentUser?.email ?? "",
-          photoURL: auth.currentUser?.photoURL ?? null,
+      const fromName = auth.currentUser?.displayName ?? "";
+      const fromEmail = auth.currentUser?.email ?? "";
+      const fromPhotoURL = auth.currentUser?.photoURL ?? null;
 
-          studioName: cleanStudio,
-          location: location.trim(),
-          genres: cleanGenres,
-          links: cleanLinks,
-          motivation: cleanMotivation,
+      // -----------------------------
+      // 1) producerApplications/{uid}
+      // -----------------------------
+      const appRef = doc(db, "producerApplications", uid);
 
-          status: "pending",
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+      // ✅ check exists -> createdAt nur beim ersten Mal
+      const existing = await getDoc(appRef);
 
-      // ✅ 2) Admin-Nachricht erstellen (Inbox)
-      // Eine Message pro User (überschreibt/aktualisiert, statt zu spammen)
-      await setDoc(
-        doc(db, "adminMessages", `producer_${uid}`),
-        {
-          type: "producer_application",
-          status: "open",
+      const baseData: any = {
+        uid,
+        displayName: fromName,
+        email: fromEmail,
+        photoURL: fromPhotoURL,
 
-          applicationUid: uid,
-          fromUid: uid,
-          fromName: auth.currentUser?.displayName ?? "",
-          fromPhotoURL: auth.currentUser?.photoURL ?? null,
-          fromEmail: auth.currentUser?.email ?? "",
+        studioName: cleanStudio,
+        location: location.trim(),
+        genres: cleanGenres,
+        links: cleanLinks,
+        motivation: cleanMotivation,
 
-          studioName: cleanStudio,
-          location: location.trim(),
+        status: "pending",
+        updatedAt: serverTimestamp(),
+      };
 
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+      if (!existing.exists()) {
+        baseData.createdAt = serverTimestamp();
+      }
+
+      await setDoc(appRef, baseData, { merge: true });
+
+      // -----------------------------
+      // 2) adminMessages/producer_{uid}
+      //    WICHTIG: KEIN getDoc() (User darf nicht lesen)
+      // -----------------------------
+      const msgRef = doc(db, "adminMessages", `producer_${uid}`);
+
+      const msgUpdate: any = {
+        type: "producer_application",
+        status: "open",
+        applicationUid: uid,
+
+        fromUid: uid,
+        fromName,
+        fromEmail,
+        fromPhotoURL,
+
+        studioName: cleanStudio,
+        location: location.trim(),
+
+        updatedAt: serverTimestamp(),
+      };
+
+      // ✅ Erst update versuchen (kein Read nötig). Wenn nicht vorhanden -> setDoc.
+      try {
+        await updateDoc(msgRef, msgUpdate);
+      } catch (e: any) {
+        // not-found -> neu erstellen
+        if (e?.code === "not-found") {
+          await setDoc(
+            msgRef,
+            {
+              ...msgUpdate,
+              createdAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+        } else {
+          // z.B. permission-denied
+          throw e;
+        }
+      }
 
       router.push("/profile");
     } catch (e: any) {
       setError(
         e?.code === "permission-denied"
-          ? "Keine Berechtigung. Bitte einloggen."
+          ? "Keine Berechtigung (Rules prüfen: producerApplications/adminMessages)."
           : "Bewerbung konnte nicht gesendet werden."
       );
     } finally {
@@ -153,13 +184,10 @@ export default function ProducerApplyPage() {
     );
   }
 
-  // ✅ Wenn schon approved: Hinweis + Link (du hast aktuell keine /producers/[uid] Detailseite)
   if (existingStatus === "approved") {
     return (
       <div className="space-y-3 rounded-3xl border border-white/10 bg-black/30 p-5">
-        <div className="text-lg font-bold text-white">
-          ✅ Du bist bereits Producer
-        </div>
+        <div className="text-lg font-bold text-white">✅ Du bist bereits Producer</div>
         <div className="text-sm text-white/70">
           Dein Producer-Profil ist freigegeben und in der Suche sichtbar.
         </div>
@@ -178,22 +206,18 @@ export default function ProducerApplyPage() {
       <div className="rounded-3xl border border-white/10 bg-black/30 p-5">
         <div className="text-xl font-bold text-white">Producer Bewerbung</div>
         <div className="mt-1 text-sm text-white/60">
-          Fülle das Formular aus. Du bekommst erst nach Freigabe ein offizielles
-          Producer-Profil.
+          Fülle das Formular aus. Du bekommst erst nach Freigabe ein offizielles Producer-Profil.
         </div>
 
         {existingStatus === "pending" && (
           <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3 text-sm text-white/70">
-            ⏳ Deine Bewerbung ist bereits eingereicht und wartet auf Prüfung. Du
-            kannst sie hier noch anpassen und erneut speichern.
+            ⏳ Deine Bewerbung ist bereits eingereicht und wartet auf Prüfung. Du kannst sie hier noch anpassen.
           </div>
         )}
 
         <div className="mt-4 grid gap-3">
           <div>
-            <label className="text-sm font-semibold text-white">
-              Studio / Producer Name *
-            </label>
+            <label className="text-sm font-semibold text-white">Studio / Producer Name *</label>
             <input
               value={studioName}
               onChange={(e) => setStudioName(e.target.value)}
@@ -213,9 +237,7 @@ export default function ProducerApplyPage() {
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-white">
-              Genres (Komma-separiert)
-            </label>
+            <label className="text-sm font-semibold text-white">Genres (Komma-separiert)</label>
             <input
               value={genres}
               onChange={(e) => setGenres(e.target.value)}
@@ -225,24 +247,18 @@ export default function ProducerApplyPage() {
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-white">
-              Links (1 pro Zeile)
-            </label>
+            <label className="text-sm font-semibold text-white">Links (1 pro Zeile)</label>
             <textarea
               value={links}
               onChange={(e) => setLinks(e.target.value)}
               rows={4}
               className="mt-1 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-2 text-sm text-white outline-none"
-              placeholder={
-                "https://soundcloud.com/...\nhttps://instagram.com/..."
-              }
+              placeholder={"https://soundcloud.com/...\nhttps://instagram.com/..."}
             />
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-white">
-              Motivation / Erfahrung *
-            </label>
+            <label className="text-sm font-semibold text-white">Motivation / Erfahrung *</label>
             <textarea
               value={motivation}
               onChange={(e) => setMotivation(e.target.value)}
