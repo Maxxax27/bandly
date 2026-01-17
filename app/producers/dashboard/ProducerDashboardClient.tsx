@@ -93,9 +93,11 @@ export default function ProducerDashboardClient() {
   const [projReady, setProjReady] = useState(false);
 
   // URL state
-  const tab = (sp.get("tab") as "requests" | "projects" | "messages" | null) ?? "requests";
+  const tab =
+    (sp.get("tab") as "requests" | "projects" | "messages" | null) ?? "requests";
+
   const status = sp.get("status") ?? "all";
-  const selected = sp.get("selected"); // request/project id
+  const selected = sp.get("selected");
 
   function setQuery(next: Record<string, string | null>) {
     const params = new URLSearchParams(sp.toString());
@@ -104,7 +106,7 @@ export default function ProducerDashboardClient() {
       else params.set(k, v);
     });
     const qs = params.toString();
-    router.replace(qs ? `?${qs}` : "?");
+    router.replace(qs ? `?${qs}` : "");
   }
 
   // Auth gate
@@ -215,7 +217,8 @@ export default function ProducerDashboardClient() {
     if (hasTab) return;
 
     if (openCount > 0) setQuery({ tab: "requests", status: "open", selected: null });
-    else if (activeProjectsCount > 0) setQuery({ tab: "projects", status: "active", selected: null });
+    else if (activeProjectsCount > 0)
+      setQuery({ tab: "projects", status: "active", selected: null });
     else setQuery({ tab: "requests", status: "all", selected: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openCount, activeProjectsCount]);
@@ -235,12 +238,15 @@ export default function ProducerDashboardClient() {
       ? status === "all"
         ? projects
         : status === "active"
-          ? projects.filter((p) => p.status !== "done")
-          : projects.filter((p) => p.status === status)
+        ? projects.filter((p) => p.status !== "done")
+        : projects.filter((p) => p.status === status)
       : projects;
 
-  const selectedRequest = tab === "requests" ? requests.find((r) => r.id === selected) ?? null : null;
-  const selectedProject = tab === "projects" ? projects.find((p) => p.id === selected) ?? null : null;
+  const selectedRequest =
+    tab === "requests" ? requests.find((r) => r.id === selected) ?? null : null;
+
+  const selectedProject =
+    tab === "projects" ? projects.find((p) => p.id === selected) ?? null : null;
 
   return (
     <div className="pb-28 space-y-4">
@@ -295,7 +301,7 @@ export default function ProducerDashboardClient() {
         >
           <div className="text-xs text-white/60">Aktive Projekte</div>
           <div className="mt-1 text-2xl font-semibold text-white">{activeProjectsCount}</div>
-          <div className="mt-1 text-xs text-white/50">Ansehen</div>
+          <div className="mt-1 text-xs text-white/50"></div>
         </button>
 
         <button
@@ -303,7 +309,7 @@ export default function ProducerDashboardClient() {
           className="rounded-3xl border border-white/10 bg-black/30 p-4 text-left hover:bg-white/5"
         >
           <div className="text-xs text-white/60">Nachrichten</div>
-          <div className="mt-1 text-2xl font-semibold text-white">—</div>
+          <div className="mt-1 text-2xl font-semibold text-white">-</div>
           <div className="mt-1 text-xs text-white/50">Zu DMs</div>
         </button>
       </div>
@@ -333,23 +339,20 @@ export default function ProducerDashboardClient() {
       {/* Filter Bar */}
       {tab === "requests" && (
         <div className="flex flex-wrap items-center gap-2">
-          {(["all", "open", "accepted", "declined"] as const).map((s) => (
+          {([
+            { key: "all", label: "Alle" },
+            { key: "open", label: "Offen" },
+            { key: "accepted", label: "Angenommen" },
+            { key: "declined", label: "Abgelehnt" },
+          ] as const).map((s) => (
             <button
-              key={s}
-              onClick={() => setQuery({ status: s, selected: null })}
-              className={pillBtn(status === s)}
+              key={s.key}
+              onClick={() => setQuery({ status: s.key, selected: null })}
+              className={pillBtn(status === s.key)}
             >
-              {s === "all" ? "Alle" : s}
+              {s.label}
             </button>
           ))}
-          {status !== "all" && filteredRequests.length === 0 && (
-            <button
-              onClick={() => setQuery({ status: "all" })}
-              className="text-xs text-white/60 underline hover:text-white"
-            >
-              Filter zurücksetzen
-            </button>
-          )}
         </div>
       )}
 
@@ -364,14 +367,6 @@ export default function ProducerDashboardClient() {
               {s === "all" ? "Alle" : s}
             </button>
           ))}
-          {status !== "all" && filteredProjects.length === 0 && (
-            <button
-              onClick={() => setQuery({ status: "all" })}
-              className="text-xs text-white/60 underline hover:text-white"
-            >
-              Filter zurücksetzen
-            </button>
-          )}
         </div>
       )}
 
@@ -576,10 +571,10 @@ function RequestStatusButtons({ requestId, current }: { requestId: string; curre
   async function setStatus(next: "accepted" | "declined" | "open") {
     setSaving(true);
     try {
-      const { updateDoc, doc } = await import("firebase/firestore");
+      const { updateDoc, doc, serverTimestamp } = await import("firebase/firestore");
       await updateDoc(doc(db, "producerRequests", requestId), {
         status: next,
-        updatedAt: new Date(),
+        updatedAt: serverTimestamp(),
       });
     } finally {
       setSaving(false);

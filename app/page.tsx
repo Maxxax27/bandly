@@ -30,8 +30,8 @@ export default function Home() {
     <main className="min-h-screen bg-black text-white">
       {/* Hero (full width) */}
       <section className="w-full px-4 py-10 text-center border-b border-white/10">
-        <h1 className="text-3xl font-bold">🎸 Schweizer Musik Community</h1>
-        <p className="mt-3 text-sm text-white/70">Poste · Teile · Verbinde</p>
+        <h1 className="text-3xl font-bold"></h1>
+        <p className="mt-3 text-sm text-white/70"></p>
       </section>
 
       {/* Post Composer (full width) */}
