@@ -393,10 +393,20 @@ function InboxIcon({ active }: { active: boolean }) {
 function ChatIcon({ active }: { active: boolean }) {
   return (
     <IconBase active={active}>
-      <path
-        d="M4 5h16v11H7l-3 3V5Z"
+      <rect
+        x="4"
+        y="5"
+        width="16"
+        height="12"
+        rx="3"
         stroke="currentColor"
         strokeWidth="1.8"
+      />
+      <path
+        d="M8 17l-3 3v-3"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
         strokeLinejoin="round"
       />
     </IconBase>

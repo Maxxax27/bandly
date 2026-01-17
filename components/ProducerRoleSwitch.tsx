@@ -78,6 +78,7 @@ export default function ProducerRoleSwitch() {
     const nextRole: "musician" | "producer" =
       activeRole === "producer" ? "musician" : "producer";
 
+    // UI sofort umschalten (wie bisher)
     setActiveRole(nextRole);
 
     await updateDoc(doc(db, "profiles", myUid), {
@@ -95,15 +96,41 @@ export default function ProducerRoleSwitch() {
       type="button"
       onClick={toggle}
       title={isProducerMode ? "Zu Musiker-Modus wechseln" : "Zu Producer-Modus wechseln"}
-      className={`relative inline-flex items-center justify-center rounded-xl border border-white/10 px-3 py-2 text-sm hover:bg-white/5 ${
-        isProducerMode ? "text-blue-300" : "text-white/70"
-      }`}
+      className={[
+        // kleiner & cleaner
+        "relative inline-flex items-center gap-2",
+        "h-8 px-2.5",
+        "rounded-full border border-white/15 bg-black/40",
+        "text-xs font-semibold",
+        "hover:bg-white/5 active:scale-[0.99] transition",
+        isProducerMode ? "text-blue-200" : "text-white/70",
+      ].join(" ")}
     >
-      <span className="mr-1">🎚️</span>
+      {/* Mini-Switch (modern) */}
+      <span
+        aria-hidden="true"
+        className={[
+          "relative inline-flex items-center",
+          "h-4 w-7 rounded-full",
+          "border border-white/15 bg-black/30",
+        ].join(" ")}
+      >
+        <span
+          className={[
+            "absolute top-1/2 -translate-y-1/2",
+            "h-3 w-3 rounded-full bg-white",
+            "transition-transform",
+            isProducerMode ? "translate-x-3.5" : "translate-x-0.5",
+          ].join(" ")}
+        />
+      </span>
+
+      {/* Label: schlicht, kürzer */}
       <span className="hidden sm:inline">
         {isProducerMode ? "Producer" : "Musiker"}
       </span>
 
+      {/* dezenter Status-Dot */}
       {isProducerMode && (
         <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-blue-400" />
       )}
