@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { deletePost } from "@/lib/posts";
+import InlineCommentComposer from "@/components/InlineCommentComposer";
 import {
   addDoc,
   collection,
@@ -149,7 +150,7 @@ export function PostCard({ post }: { post: any }) {
     return () => unsub();
   }, [post.id, uid]);
 
-  async function submitComment() {
+  async function submitComment(text: string) {
     if (!uid) return;
     const clean = commentText.trim();
     if (!clean) return;
@@ -311,13 +312,10 @@ export function PostCard({ post }: { post: any }) {
 
       {/* 💬 Kommentare + Counter */}
       <div className="mt-4 border-t border-white/10 pt-3">
-        <div className="flex justify-between text-sm text-white/70">
-          <span>
-            💬 {post.commentCount ?? 0} Kommentar
-            {(post.commentCount ?? 0) === 1 ? "" : "e"}
-          </span>
-          <span className="text-xs text-white/40">Kommentieren</span>
-        </div>
+        <div className="flex items-center justify-between">
+  <span className="text-sm text-white/70"></span>
+  <span className="text-xs text-white/40"></span>
+</div>
 
         <div className="mt-3">
           {!uid ? (
@@ -326,22 +324,14 @@ export function PostCard({ post }: { post: any }) {
             </div>
           ) : (
             <>
-              <div className="flex gap-2">
-                <input
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Kommentar schreiben…"
-                  className="flex-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm"
-                  maxLength={500}
-                />
-                <button
-                  onClick={submitComment}
-                  disabled={commentSending || !commentText.trim()}
-                  className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm hover:bg-white/10 disabled:opacity-40"
-                >
-                  {commentSending ? "…" : "Senden"}
-                </button>
-              </div>
+              <InlineCommentComposer
+  count={post.commentCount ?? 0}
+  disabled={!uid || commentSending}
+  onSubmit={async (text) => {
+    await submitComment(text);
+  }}
+/>
+
 
               {commentError && (
                 <div className="mt-2 text-xs text-red-400">{commentError}</div>
@@ -352,7 +342,7 @@ export function PostCard({ post }: { post: any }) {
                   <div className="text-xs text-white/50">Lade Kommentare…</div>
                 ) : comments.length === 0 ? (
                   <div className="text-xs text-white/50">
-                    Noch keine Kommentare.
+                    
                   </div>
                 ) : (
                   comments.map((c) => (

@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth, db } from "@/lib/firebase";
+import { auth, db, storage } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 type Service = {
   title: string;
@@ -81,6 +82,9 @@ export default function ProducerEditPage() {
   const [producer, setProducer] = useState<Producer | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
+  // photo upload
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
   // form states
   const [studioName, setStudioName] = useState("");
   const [location, setLocation] = useState("");
@@ -117,8 +121,8 @@ export default function ProducerEditPage() {
       setErr(null);
 
       try {
-        const ref = doc(db, "producers", uid);
-        const snap = await getDoc(ref);
+        const refDoc = doc(db, "producers", uid);
+        const snap = await getDoc(refDoc);
 
         if (!snap.exists()) {
           setErr("Du hast noch kein Producer-Profil (noch nicht freigeschaltet).");
@@ -167,6 +171,59 @@ export default function ProducerEditPage() {
   }, [uid]);
 
   const profileHref = useMemo(() => (uid ? `/producers/${uid}` : "/producers"), [uid]);
+
+  const producerAvatarSrc = useMemo(() => {
+    const base = producer?.photoURL ?? "/default-avatar.png";
+
+    // optional cache bust: wenn du in producer doc updatedAt hast
+    // (wir setzen updatedAt bei Foto-Upload)
+    const anyProd: any = producer as any;
+    const v =
+      anyProd?.updatedAt?.seconds ??
+      anyProd?.updatedAt?.toMillis?.() ??
+      anyProd?.updatedAt?.toDate?.()?.getTime?.();
+
+    return v ? `${base}?v=${String(v)}` : base;
+  }, [producer]);
+
+  async function onPickProducerPhoto(file: File | null) {
+    if (!file || !uid) return;
+
+    setUploadingPhoto(true);
+    setErr(null);
+    setSaved(false);
+
+    try {
+      // optional: simple type check
+      if (!file.type.startsWith("image/")) {
+        setErr("Bitte ein Bild (PNG/JPG/WebP) auswählen.");
+        return;
+      }
+
+      // Upload path
+      const fileRef = ref(storage, `producerAvatars/${uid}/avatar_${Date.now()}`);
+      await uploadBytes(fileRef, file, { contentType: file.type });
+      const url = await getDownloadURL(fileRef);
+
+      // Save to producer doc
+      await updateDoc(doc(db, "producers", uid), {
+        photoURL: url,
+        updatedAt: serverTimestamp(),
+      });
+
+      // Update local state (so UI updates instantly)
+      setProducer((prev) => ({ ...(prev ?? {}), photoURL: url } as Producer));
+      setSaved(true);
+    } catch (e: any) {
+      setErr(
+        e?.code === "permission-denied"
+          ? "Keine Berechtigung (Storage Rules / producers update)."
+          : "Bild-Upload fehlgeschlagen."
+      );
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
 
   async function save() {
     if (!uid) return;
@@ -222,9 +279,7 @@ export default function ProducerEditPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">Producer Profil bearbeiten</h1>
-          <p className="mt-1 text-sm text-white/60">
-            Änderungen sind öffentlich sichtbar.
-          </p>
+          <p className="mt-1 text-sm text-white/60">Änderungen sind öffentlich sichtbar.</p>
         </div>
 
         <button
@@ -243,6 +298,41 @@ export default function ProducerEditPage() {
 
       {!producer ? null : (
         <div className="space-y-4">
+          {/* Producer Photo */}
+          <div className="rounded-3xl border border-white/10 bg-black/30 p-5 space-y-3">
+            <div className="text-sm font-semibold text-white">Bild (Studio / Producer)</div>
+
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="h-14 w-14 overflow-hidden rounded-2xl border border-white/10 bg-black/40">
+                  <img
+                    src={producerAvatarSrc}
+                    alt="Producer/Studio"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-white">Producer / Studio Foto</div>
+                  <div className="text-xs text-white/50">
+                    Wird im Producer Profil & Dashboard angezeigt.
+                  </div>
+                </div>
+              </div>
+
+              <label className="shrink-0 inline-flex items-center justify-center rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-xs text-white/80 hover:bg-white/5 cursor-pointer">
+                {uploadingPhoto ? "Lade hoch…" : "Bild ändern"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploadingPhoto}
+                  onChange={(e) => onPickProducerPhoto(e.target.files?.[0] ?? null)}
+                />
+              </label>
+            </div>
+          </div>
+
           {/* Basic */}
           <div className="rounded-3xl border border-white/10 bg-black/30 p-5 space-y-3">
             <div className="text-sm font-semibold text-white">Basis</div>
@@ -394,7 +484,7 @@ export default function ProducerEditPage() {
 
           <button
             onClick={save}
-            disabled={saving || !!err && !producer}
+            disabled={saving || (!!err && !producer)}
             className="w-full rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-black hover:opacity-95 disabled:opacity-60"
           >
             {saving ? "Speichere…" : "Änderungen speichern"}

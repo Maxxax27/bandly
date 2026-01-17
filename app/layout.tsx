@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import HeaderNav from "@/components/HeaderNav";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import Providers from "./providers";
+import ClientProviders from "@/components/ClientProviders";
 
 export const metadata = {
   title: "Bandly | Schweizer Bandbörse",
@@ -32,9 +33,11 @@ export default function RootLayout({
           </div>
 
           {/* Content */}
-          <main className="min-h-[calc(100vh-64px)] w-full px-0 pt-0 pb-32 md:pb-8">
-            {children}
-          </main>
+          <ClientProviders>
+            <main className="min-h-[calc(100vh-64px)] w-full px-0 pt-0 pb-32 md:pb-8">
+              {children}
+            </main>
+          </ClientProviders>
         </Providers>
 
         {/* Mobile Bottom Navigation */}
