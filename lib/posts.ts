@@ -11,6 +11,7 @@ import {
   doc,
   deleteDoc,
   getDoc,
+  where,
 } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 
@@ -81,4 +82,35 @@ export async function deletePost(postId: string, opts?: { deleteAttachments?: bo
   }
 
   await deleteDoc(doc(db, "posts", postId));
+}
+export async function fetchPostsByAuthor(params: {
+  type: "musician" | "band" | "producer";
+  uid?: string;
+  bandId?: string;
+  pageSize?: number;
+}) {
+  const pageSize = params.pageSize ?? 20;
+
+  let qRef;
+  if (params.type === "band") {
+    qRef = query(
+      collection(db, "posts"),
+      where("author.type", "==", "band"),
+      where("author.bandId", "==", params.bandId),
+      orderBy("createdAt", "desc"),
+      limit(pageSize)
+    );
+  } else {
+    // musician oder producer
+    qRef = query(
+      collection(db, "posts"),
+      where("author.type", "==", params.type),
+      where("author.uid", "==", params.uid),
+      orderBy("createdAt", "desc"),
+      limit(pageSize)
+    );
+  }
+
+  const snap = await getDocs(qRef);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }

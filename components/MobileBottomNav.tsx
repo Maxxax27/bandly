@@ -33,6 +33,7 @@ export default function MobileBottomNav() {
   const profileHref = uid ? "/profile" : loginHref;
   const profileLabel = uid ? "Profil" : "Login";
 
+  // ✅ FIX: Events bleibt immer unten (kein Admin hier!)
   const items = [
     { href: "/", label: "Feed", icon: HomeIcon },
     { href: "/search", label: "Suche", icon: SearchIcon },
@@ -40,7 +41,7 @@ export default function MobileBottomNav() {
     { href: "/events", label: "Events", icon: CalendarIcon },
     // Profil/Login wird unten als Spezialfall gerendert (Avatar)
     { href: profileHref, label: profileLabel, icon: UserIcon },
-  ];
+  ] as const;
 
   return (
     <nav

@@ -1,12 +1,35 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import { useAuth } from "@/lib/auth-context";
 import { useUnreadCount } from "@/lib/useUnreadCount";
 
 export default function Header() {
   const { user } = useAuth();
   const unread = useUnreadCount(user?.uid ?? null);
+
+  // ✅ Admin Claim
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (!u) {
+        setIsAdmin(false);
+        return;
+      }
+      try {
+        const tok = await u.getIdTokenResult(true);
+        setIsAdmin(tok?.claims?.admin === true);
+      } catch {
+        setIsAdmin(false);
+      }
+    });
+
+    return () => unsub();
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur">
@@ -39,7 +62,7 @@ export default function Header() {
             Events
           </Link>
 
-          {/* Nachrichten (Desktop) */}
+          {/* Nachrichten */}
           <Link
             href="/messages"
             className="relative inline-flex items-center gap-2 hover:text-white transition"
@@ -57,6 +80,17 @@ export default function Header() {
             )}
           </Link>
 
+          {/* ✅ Admin Inbox (nur Admin) */}
+          {isAdmin && (
+            <Link
+              href="/admin/inbox"
+              className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-black/40 px-3 py-1.5 text-white/80 hover:bg-white/10 transition"
+              title="Admin Inbox"
+            >
+              📩 Admin
+            </Link>
+          )}
+
           <Link
             href="/profile"
             className="rounded-xl border border-white/20 bg-black/40 px-3 py-1.5 text-white hover:bg-black/60 transition"
@@ -65,14 +99,14 @@ export default function Header() {
           </Link>
         </nav>
 
-        {/* -------- Mobile: Messages Icon only -------- */}
-        <div className="md:hidden">
+        {/* -------- Mobile: Icons -------- */}
+        <div className="md:hidden flex items-center gap-2">
+          {/* Nachrichten */}
           <Link
             href="/messages"
             className="relative inline-flex items-center justify-center rounded-xl p-2 text-white/80 hover:text-white"
             aria-label="Nachrichten"
           >
-            {/* Icon */}
             <svg
               width="24"
               height="24"
@@ -86,7 +120,6 @@ export default function Header() {
               <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z" />
             </svg>
 
-            {/* Badge */}
             {unread > 0 && (
               <span
                 className="absolute -top-1 -right-1 min-w-[18px] h-[18px]
@@ -97,6 +130,18 @@ export default function Header() {
               </span>
             )}
           </Link>
+
+          {/* ✅ Admin Inbox (Mobile, nur Admin) */}
+          {isAdmin && (
+            <Link
+              href="/admin/inbox"
+              className="inline-flex items-center justify-center rounded-xl p-2 text-white/80 hover:text-white"
+              aria-label="Admin Inbox"
+              title="Admin Inbox"
+            >
+              📩
+            </Link>
+          )}
         </div>
       </div>
     </header>

@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  doc,
+  collection,
+  getDoc,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
 export default function ProducerApplyPage() {
@@ -82,6 +88,7 @@ export default function ProducerApplyPage() {
     setError(null);
 
     try {
+      // ✅ 1) Bewerbung speichern/aktualisieren
       await setDoc(
         doc(db, "producerApplications", uid),
         {
@@ -97,6 +104,29 @@ export default function ProducerApplyPage() {
           motivation: cleanMotivation,
 
           status: "pending",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      // ✅ 2) Admin-Nachricht erstellen (Inbox)
+      // Eine Message pro User (überschreibt/aktualisiert, statt zu spammen)
+      await setDoc(
+        doc(db, "adminMessages", `producer_${uid}`),
+        {
+          type: "producer_application",
+          status: "open",
+
+          applicationUid: uid,
+          fromUid: uid,
+          fromName: auth.currentUser?.displayName ?? "",
+          fromPhotoURL: auth.currentUser?.photoURL ?? null,
+          fromEmail: auth.currentUser?.email ?? "",
+
+          studioName: cleanStudio,
+          location: location.trim(),
+
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         },
@@ -127,7 +157,9 @@ export default function ProducerApplyPage() {
   if (existingStatus === "approved") {
     return (
       <div className="space-y-3 rounded-3xl border border-white/10 bg-black/30 p-5">
-        <div className="text-lg font-bold text-white">✅ Du bist bereits Producer</div>
+        <div className="text-lg font-bold text-white">
+          ✅ Du bist bereits Producer
+        </div>
         <div className="text-sm text-white/70">
           Dein Producer-Profil ist freigegeben und in der Suche sichtbar.
         </div>
@@ -201,7 +233,9 @@ export default function ProducerApplyPage() {
               onChange={(e) => setLinks(e.target.value)}
               rows={4}
               className="mt-1 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-2 text-sm text-white outline-none"
-              placeholder={"https://soundcloud.com/...\nhttps://instagram.com/..."}
+              placeholder={
+                "https://soundcloud.com/...\nhttps://instagram.com/..."
+              }
             />
           </div>
 

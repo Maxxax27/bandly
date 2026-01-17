@@ -129,10 +129,12 @@ export default function ProducersPage() {
       ) : (
         <div className="grid gap-3">
           {filtered.map((p) => (
-            <div
-              key={p.id}
-              className="flex items-center gap-4 rounded-2xl border border-white/10 bg-black/30 p-4"
-            >
+  <Link
+    key={p.id}
+    href={`/producers/${p.id}`}
+    className="flex items-center gap-4 rounded-2xl border border-white/10 bg-black/30 p-4 hover:bg-white/5 transition"
+  >
+
               {/* Avatar */}
               <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-white/10 bg-black/40">
                 <img
@@ -144,9 +146,19 @@ export default function ProducersPage() {
 
               {/* Text */}
               <div className="min-w-0 flex-1">
-                <div className="text-base font-semibold text-white truncate">
-                  {p.studioName || p.displayName || "Producer"}
-                </div>
+                <div className="flex items-center gap-2 truncate">
+  <span className="text-base font-semibold text-white truncate">
+    {p.studioName || p.displayName || "Producer"}
+  </span>
+
+  {/* Blaues Producer Badge */}
+  {p.badges?.producer && (
+    <span className="rounded-md bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-400">
+      PRODUCER
+    </span>
+  )}
+</div>
+
 
                 <div className="mt-0.5 text-sm text-white/60 truncate">
                   {p.location ? p.location : "—"}
@@ -161,7 +173,7 @@ export default function ProducersPage() {
               </div>
 
               <div className="text-xs text-white/40">🎚️</div>
-            </div>
+              </Link>
           ))}
         </div>
       )}

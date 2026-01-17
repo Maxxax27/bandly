@@ -41,6 +41,14 @@ function formatPostTime(timestamp: any) {
   });
 }
 
+function handleOf(postedBy: any) {
+  const u = String(postedBy?.username ?? "").trim();
+  if (u) return `@${u}`;
+  const dn = String(postedBy?.displayName ?? "").trim();
+  if (dn) return `@${dn}`;
+  return null;
+}
+
 export function PostCard({ post }: { post: any }) {
   const router = useRouter();
   const a = post.author;
@@ -48,6 +56,8 @@ export function PostCard({ post }: { post: any }) {
 
   const [isBandAdmin, setIsBandAdmin] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const postedByHandle = useMemo(() => handleOf(post?.postedBy), [post?.postedBy]);
 
   // Live Zeit
   const [, forceTick] = useState(0);
@@ -57,9 +67,17 @@ export function PostCard({ post }: { post: any }) {
     return () => clearInterval(id);
   }, []);
 
+  // ✅ Hauptnavigation bleibt: Band -> Bandseite, Musiker -> Musiker, Producer -> Producer
   const goAuthor = () => {
-    if (a.type === "musician") router.push(`/musicians/${a.uid}`);
-    if (a.type === "band") router.push(`/bands/${a.bandId}`);
+    if (a?.type === "musician") router.push(`/musicians/${a.uid}`);
+    if (a?.type === "band") router.push(`/bands/${a.bandId}`);
+    if (a?.type === "producer") router.push(`/producers/${a.uid}`);
+  };
+
+  // ✅ Member-Profil (nur wenn Band-Post durch Member)
+  const goPostedBy = () => {
+    if (!post?.postedBy?.uid) return;
+    router.push(`/musicians/${post.postedBy.uid}`);
   };
 
   const canDeleteMusicianPost = useMemo(
@@ -176,17 +194,50 @@ export function PostCard({ post }: { post: any }) {
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
+          {/* 🟣 Band/Musiker/Producer Avatar bleibt author */}
           <button onClick={goAuthor}>
             <img
-              src={a.photoURL ?? "/default-avatar.png"}
+              src={a?.photoURL ?? "/default-avatar.png"}
               className="h-10 w-10 rounded-full object-cover"
-              alt={a.displayName}
+              alt={a?.displayName ?? "Author"}
             />
           </button>
-          <div>
-            <button onClick={goAuthor} className="font-semibold hover:underline">
-              {a.displayName}
-            </button>
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              {/* Band/Musiker/Producer Name */}
+              <button
+                onClick={goAuthor}
+                className="font-semibold hover:underline truncate"
+              >
+                {a?.displayName ?? "Unbekannt"}
+              </button>
+
+              {/* 🟢 Member Avatar + @Name (klickbar) wenn Band-Post durch Member */}
+              {a?.type === "band" && post?.postedBy?.uid && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    goPostedBy();
+                  }}
+                  className="flex items-center gap-1 hover:opacity-90"
+                  title="Zum Member-Profil"
+                >
+                  <img
+                    src={post.postedBy.photoURL ?? "/default-avatar.png"}
+                    className="h-6 w-6 rounded-full object-cover border border-white/10"
+                    alt={postedByHandle ?? "Member"}
+                  />
+                  {postedByHandle && (
+                    <span className="text-sm text-white/60 hover:text-white hover:underline truncate">
+                      {postedByHandle}
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
+
             <div className="text-xs text-white/50">
               {formatPostTime(post.createdAt)}
             </div>
@@ -205,9 +256,8 @@ export function PostCard({ post }: { post: any }) {
       </div>
 
       {/* Content */}
-      <div className="mt-3 whitespace-pre-wrap text-white/90">
-        {post.content}
-      </div>
+      <div className="mt-3 whitespace-pre-wrap text-white/90">{post.content}</div>
+
       {/* ✅ Attachments (Bilder / Audio / Dokumente) */}
       {Array.isArray(post.attachments) && post.attachments.length > 0 && (
         <div className="mt-3 space-y-3">
