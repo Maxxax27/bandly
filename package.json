@@ -3,13 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "cross-env NEXT_DISABLE_TURBOPACK=1 next dev",
     "build": "cross-env NEXT_TS_CONFIG_PATH=tsconfig.next.json next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
-    "firebase": "^12.7.0",
+    "firebase": "^12.8.0",
     "firebase-admin": "^13.6.0",
     "next": "16.1.1",
     "react": "19.2.3",

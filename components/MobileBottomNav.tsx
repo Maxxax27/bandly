@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { auth } from "@/lib/firebase";
-import { onAuthStateChanged, type User } from "firebase/auth";
-import { useEffect, useState } from "react";
+import { auth, db } from "@/lib/firebase";
+import { onIdTokenChanged, type User } from "firebase/auth";
+import { doc, onSnapshot } from "firebase/firestore";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 function clsx(...c: Array<string | false | null | undefined>) {
   return c.filter(Boolean).join(" ");
@@ -15,33 +16,163 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");
 }
 
+type ProfileDoc = {
+  photoURL?: string | null;
+  activeRole?: "user" | "producer";
+  updatedAt?: any; // serverTimestamp()
+};
+
+type ProducerDoc = {
+  verified?: boolean;
+};
+
+function cacheBust(url: string, v?: string | number | null) {
+  if (!v) return url;
+  return url.includes("?") ? `${url}&v=${String(v)}` : `${url}?v=${String(v)}`;
+}
+
 export default function MobileBottomNav() {
   const pathname = usePathname();
 
   const [user, setUser] = useState<User | null>(auth.currentUser);
-  const uid = user?.uid;
+  const uid = user?.uid ?? null;
 
+  const [profile, setProfile] = useState<ProfileDoc | null>(null);
+  const [producer, setProducer] = useState<ProducerDoc | null>(null);
+
+  // Guard against events after unmount
+  const aliveRef = useRef(true);
+
+  // ✅ More stable than onAuthStateChanged in fast navigation + dev
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
-    return () => unsub();
+    aliveRef.current = true;
+
+    const unsub = onIdTokenChanged(auth, (u) => {
+      if (!aliveRef.current) return;
+      setUser(u);
+
+      if (!u) {
+        setProfile(null);
+        setProducer(null);
+      }
+    });
+
+    return () => {
+      aliveRef.current = false;
+      unsub();
+    };
   }, []);
 
-  // ✅ passe das an, falls deine Login-Seite anders heißt
-  const loginHref = "/login";
+  // Profile live (Avatar + activeRole)
+  useEffect(() => {
+    if (!uid) {
+      setProfile(null);
+      return;
+    }
 
-  // ✅ Wenn eingeloggt -> /profile (app/profile/page.tsx), sonst -> Login
+    let unsub: (() => void) | null = null;
+    let cancelled = false;
+
+    // ✅ start subscription next microtask (reduces watch race)
+    Promise.resolve().then(() => {
+      if (cancelled || !aliveRef.current) return;
+
+      const ref = doc(db, "profiles", uid);
+      unsub = onSnapshot(
+        ref,
+        (snap) => {
+          if (!aliveRef.current) return;
+          setProfile(snap.exists() ? (snap.data() as ProfileDoc) : null);
+        },
+        () => {
+          if (!aliveRef.current) return;
+          setProfile(null);
+        }
+      );
+    });
+
+    return () => {
+      cancelled = true;
+      if (unsub) unsub();
+    };
+    // ✅ pathname included => clean re-subscribe on route change
+  }, [uid, pathname]);
+
+  // Producer doc live (verified gate)
+  useEffect(() => {
+    if (!uid) {
+      setProducer(null);
+      return;
+    }
+
+    let unsub: (() => void) | null = null;
+    let cancelled = false;
+
+    Promise.resolve().then(() => {
+      if (cancelled || !aliveRef.current) return;
+
+      const ref = doc(db, "producers", uid);
+      unsub = onSnapshot(
+        ref,
+        (snap) => {
+          if (!aliveRef.current) return;
+          setProducer(snap.exists() ? (snap.data() as ProducerDoc) : null);
+        },
+        () => {
+          if (!aliveRef.current) return;
+          setProducer(null);
+        }
+      );
+    });
+
+    return () => {
+      cancelled = true;
+      if (unsub) unsub();
+    };
+  }, [uid, pathname]);
+
+  const loginHref = "/login";
+  const isVerifiedProducer = producer?.verified === true;
+
+  // activeRole darf nur producer sein, wenn verified
+  const activeRole: "user" | "producer" =
+    profile?.activeRole === "producer" && isVerifiedProducer ? "producer" : "user";
+
+  const avatarSrc = useMemo(() => {
+    const base = profile?.photoURL ?? user?.photoURL ?? "/default-avatar.png";
+
+    const v =
+      profile?.updatedAt?.seconds ??
+      profile?.updatedAt?.toMillis?.() ??
+      profile?.updatedAt?.toDate?.()?.getTime?.() ??
+      null;
+
+    return cacheBust(base, v ? String(v) : null);
+  }, [profile?.photoURL, profile?.updatedAt, user?.photoURL]);
+
+  // Links / Labels
   const profileHref = uid ? "/profile" : loginHref;
   const profileLabel = uid ? "Profil" : "Login";
 
-  // ✅ FIX: Events bleibt immer unten (kein Admin hier!)
-  const items = [
+  // ✅ User-Mode Nav (wie vorher)
+  const userItems = [
     { href: "/", label: "Feed", icon: HomeIcon },
     { href: "/search", label: "Suche", icon: SearchIcon },
     { href: "/listings", label: "Inserate", icon: TagIcon },
     { href: "/events", label: "Events", icon: CalendarIcon },
-    // Profil/Login wird unten als Spezialfall gerendert (Avatar)
     { href: profileHref, label: profileLabel, icon: UserIcon },
   ] as const;
+
+  // ✅ Producer-Mode Nav (wie du wolltest)
+  const producerItems = [
+    { href: "/", label: "Feed", icon: HomeIcon },
+    { href: "/producers/dashboard", label: "Dashboard", icon: DashboardIcon },
+    { href: "/producers/dashboard", label: "Anfragen", icon: InboxIcon }, // später /producers/dashboard?tab=requests
+    { href: "/messages", label: "Chats", icon: ChatIcon },
+    { href: profileHref, label: profileLabel, icon: UserIcon },
+  ] as const;
+
+  const items = activeRole === "producer" ? producerItems : userItems;
 
   return (
     <nav
@@ -56,12 +187,12 @@ export default function MobileBottomNav() {
             const active = isActive(pathname, it.href);
             const Icon = it.icon;
 
-            // ✅ Letzter Tab: Avatar statt UserIcon, wenn eingeloggt
             if (isProfileItem && uid) {
               return (
                 <li key={it.label}>
                   <Link
                     href={it.href}
+                    prefetch={false}
                     className={clsx(
                       "flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs",
                       active ? "text-white" : "text-white/60 hover:text-white"
@@ -77,7 +208,7 @@ export default function MobileBottomNav() {
                       aria-hidden="true"
                     >
                       <img
-                        src={user.photoURL ?? "/default-avatar.png"}
+                        src={avatarSrc}
                         alt="Profil"
                         className={clsx(
                           "h-[22px] w-[22px] rounded-full object-cover border",
@@ -85,19 +216,17 @@ export default function MobileBottomNav() {
                         )}
                       />
                     </span>
-                    <span className={clsx(active && "font-semibold")}>
-                      Profil
-                    </span>
+                    <span className={clsx(active && "font-semibold")}>Profil</span>
                   </Link>
                 </li>
               );
             }
 
-            // ✅ Normal (inkl. Login wenn nicht eingeloggt)
             return (
               <li key={it.label}>
                 <Link
                   href={it.href}
+                  prefetch={false}
                   className={clsx(
                     "flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs",
                     active ? "text-white" : "text-white/60 hover:text-white"
@@ -105,9 +234,7 @@ export default function MobileBottomNav() {
                   aria-current={active ? "page" : undefined}
                 >
                   <Icon active={active} />
-                  <span className={clsx(active && "font-semibold")}>
-                    {it.label}
-                  </span>
+                  <span className={clsx(active && "font-semibold")}>{it.label}</span>
                 </Link>
               </li>
             );
@@ -225,6 +352,52 @@ function UserIcon({ active }: { active: boolean }) {
         stroke="currentColor"
         strokeWidth="1.8"
         strokeLinecap="round"
+      />
+    </IconBase>
+  );
+}
+
+/* Producer Mode Icons */
+function DashboardIcon({ active }: { active: boolean }) {
+  return (
+    <IconBase active={active}>
+      <path
+        d="M4 4h7v7H4V4Zm9 0h7v4h-7V4Zm0 6h7v10h-7V10ZM4 13h7v7H4v-7Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </IconBase>
+  );
+}
+
+function InboxIcon({ active }: { active: boolean }) {
+  return (
+    <IconBase active={active}>
+      <path
+        d="M4 4h16v12H4V4Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4 16l4-5h3l2 2h2l2-2h3l4 5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </IconBase>
+  );
+}
+
+function ChatIcon({ active }: { active: boolean }) {
+  return (
+    <IconBase active={active}>
+      <path
+        d="M4 5h16v11H7l-3 3V5Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
       />
     </IconBase>
   );
