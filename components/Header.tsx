@@ -7,6 +7,7 @@ import { onIdTokenChanged } from "firebase/auth";
 import { useAuth } from "@/lib/auth-context";
 import { useUnreadCount } from "@/lib/useUnreadCount";
 import ProducerRoleSwitch from "@/components/ProducerRoleSwitch";
+import VenueRoleSwitch from "@/components/VenueRoleSwitch";
 
 export default function Header() {
   const { user } = useAuth();
@@ -112,12 +113,16 @@ export default function Header() {
             Profil
           </Link>
 
-          <ProducerRoleSwitch />
+          {/* ✅ Switches (Desktop) */}
+          <div className="flex items-center gap-2">
+            <ProducerRoleSwitch />
+            <VenueRoleSwitch />
+          </div>
         </nav>
 
         {/* -------- Mobile -------- */}
         <div className="md:hidden flex items-center gap-2">
-          {/* Nachrichten (modern icon statt 💬) */}
+          {/* Nachrichten */}
           <Link
             href="/messages"
             aria-label="Nachrichten"
@@ -145,7 +150,9 @@ export default function Header() {
             )}
           </Link>
 
+          {/* ✅ Switches (Mobile) */}
           <ProducerRoleSwitch />
+          <VenueRoleSwitch />
 
           {isAdmin && (
             <Link href="/admin/inbox" className="p-2 text-white/80 hover:text-white">

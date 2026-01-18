@@ -5,18 +5,50 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, getDocs, limit, query, where } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  limit,
+  query,
+  where,
+  orderBy,
+} from "firebase/firestore";
 
 function norm(v: any) {
   return String(v ?? "").trim();
 }
+
+type AdminMsg = {
+  id: string;
+
+  type: "producer_application" | "venue_application" | string;
+  status: "open" | "handled" | string;
+
+  applicationId?: string;
+
+  fromUid?: string;
+  fromName?: string;
+  fromPhotoURL?: string;
+  fromEmail?: string;
+
+  // Producer
+  studioName?: string;
+  location?: any;
+
+  // Venue
+  venueName?: string;
+  proposedLocation?: any;
+
+  createdAt?: any;
+  updatedAt?: any;
+};
 
 export default function AdminInboxPage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState<AdminMsg[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -26,12 +58,17 @@ export default function AdminInboxPage() {
         router.replace("/login");
         return;
       }
-      const tok = await u.getIdTokenResult(true);
+
+      // ✅ kein force refresh
+      const tok = await u.getIdTokenResult();
       const admin = tok?.claims?.admin === true;
+
       setIsAdmin(admin);
       setReady(true);
+
       if (!admin) router.replace("/");
     });
+
     return () => unsub();
   }, [router]);
 
@@ -43,26 +80,37 @@ export default function AdminInboxPage() {
       setErr(null);
 
       try {
-        // ✅ Kein orderBy -> kein Index nötig
+        // ✅ Admin Inbox basiert auf adminMessages
+        // - status open
+        // - type: producer_application / venue_application
         const q = query(
-          collection(db, "producerApplications"),
-          where("status", "==", "pending"),
+          collection(db, "adminMessages"),
+          where("status", "==", "open"),
+          orderBy("createdAt", "desc"),
           limit(50)
         );
 
         const snap = await getDocs(q);
-        setRows(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        const data: AdminMsg[] = snap.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as any),
+        }));
+
+        // Optional: falls du NUR diese 2 Types willst:
+        const filtered = data.filter(
+          (x) => x.type === "producer_application" || x.type === "venue_application"
+        );
+
+        setRows(filtered);
       } catch (e: any) {
         const msg =
           e?.code === "permission-denied"
             ? "Keine Berechtigung (Admin Claim / Rules)."
             : e?.code === "failed-precondition"
-            ? "Firestore Index fehlt (failed-precondition)."
-            : "Konnte Anfragen nicht anzeigen.";
+            ? "Firestore Index fehlt (orderBy/where)."
+            : "Konnte Inbox nicht laden.";
 
-        // ✅ Debug damit du sofort siehst was Firestore wirklich sagt:
         console.error("AdminInbox load error:", e);
-
         setErr(msg);
       } finally {
         setLoading(false);
@@ -81,7 +129,9 @@ export default function AdminInboxPage() {
     <div className="p-6 space-y-4">
       <div>
         <h1 className="text-xl font-bold text-white">📩 Admin Inbox</h1>
-        <p className="text-sm text-white/60">Pending Producer-Bewerbungen.</p>
+        <p className="text-sm text-white/60">
+          Offene Producer- & Venue-Bewerbungen.
+        </p>
       </div>
 
       {loading ? (
@@ -95,34 +145,53 @@ export default function AdminInboxPage() {
         </div>
       ) : rows.length === 0 ? (
         <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/70">
-          Keine pending Anfragen.
+          Keine offenen Anfragen.
         </div>
       ) : (
         <div className="grid gap-3">
           {rows.map((m) => {
-            const uid = m.uid ?? m.id;
-            const title = norm(m.studioName) || norm(m.displayName) || uid;
+            const type = m.type;
+            const appId = m.applicationId ?? m.id;
+
+            const title =
+              type === "venue_application"
+                ? norm(m.venueName) || norm(m.fromName) || appId
+                : norm(m.studioName) || norm(m.fromName) || appId;
+
+            const subtitle =
+              type === "venue_application"
+                ? norm(m?.proposedLocation?.city) || norm(m?.proposedLocation?.country) || "—"
+                : norm(m.location) || "—";
+
+            const href =
+              type === "venue_application"
+                ? `/admin/venues?applicationId=${encodeURIComponent(appId)}`
+                : `/admin/producer-requests?uid=${encodeURIComponent(appId)}`;
 
             return (
               <div
-                key={uid}
+                key={m.id}
                 className="rounded-2xl border border-white/10 bg-black/30 p-4"
               >
                 <div className="flex items-center gap-3">
                   <img
-                    src={m.photoURL ?? "/default-avatar.png"}
+                    src={m.fromPhotoURL || "/default-avatar.png"}
                     className="h-10 w-10 rounded-full object-cover border border-white/10"
                     alt={title}
                   />
+
                   <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-white truncate">{title}</div>
-                    <div className="text-sm text-white/60 truncate">
-                      {m.location ? m.location : "—"}
+                    <div className="flex items-center gap-2">
+                      <div className="font-semibold text-white truncate">{title}</div>
+                      <span className="text-[11px] rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-white/70">
+                        {type === "venue_application" ? "Venue" : "Producer"}
+                      </span>
                     </div>
+                    <div className="text-sm text-white/60 truncate">{subtitle}</div>
                   </div>
 
                   <Link
-                    href={`/admin/producer-requests?uid=${uid}`}
+                    href={href}
                     className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white/80 hover:bg-white/10"
                   >
                     Öffnen

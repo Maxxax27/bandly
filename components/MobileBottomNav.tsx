@@ -7,6 +7,8 @@ import { onIdTokenChanged, type User } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { useVenueMemberships } from "@/lib/useVenueMemberships";
+
 function clsx(...c: Array<string | false | null | undefined>) {
   return c.filter(Boolean).join(" ");
 }
@@ -18,12 +20,19 @@ function isActive(pathname: string, href: string) {
 
 type ProfileDoc = {
   photoURL?: string | null;
-  activeRole?: "user" | "producer";
-  updatedAt?: any; // serverTimestamp()
+  activeRole?: "musician" | "producer" | "venue";
+  activeVenueId?: string | null;
+  updatedAt?: any;
 };
 
 type ProducerDoc = {
   verified?: boolean;
+};
+
+type VenueDoc = {
+  name?: string;
+  avatarURL?: string;
+  updatedAt?: any;
 };
 
 function cacheBust(url: string, v?: string | number | null) {
@@ -40,10 +49,14 @@ export default function MobileBottomNav() {
   const [profile, setProfile] = useState<ProfileDoc | null>(null);
   const [producer, setProducer] = useState<ProducerDoc | null>(null);
 
-  // Guard against events after unmount
+  // ✅ Venues nur für Avatar + (optional) Validierung
+  const { venues, loading: venuesLoading } = useVenueMemberships();
+
+  const [activeVenue, setActiveVenue] = useState<VenueDoc | null>(null);
+
   const aliveRef = useRef(true);
 
-  // ✅ More stable than onAuthStateChanged in fast navigation + dev
+  // auth
   useEffect(() => {
     aliveRef.current = true;
 
@@ -54,6 +67,7 @@ export default function MobileBottomNav() {
       if (!u) {
         setProfile(null);
         setProducer(null);
+        setActiveVenue(null);
       }
     });
 
@@ -63,7 +77,7 @@ export default function MobileBottomNav() {
     };
   }, []);
 
-  // Profile live (Avatar + activeRole)
+  // profile live
   useEffect(() => {
     if (!uid) {
       setProfile(null);
@@ -73,7 +87,6 @@ export default function MobileBottomNav() {
     let unsub: (() => void) | null = null;
     let cancelled = false;
 
-    // ✅ start subscription next microtask (reduces watch race)
     Promise.resolve().then(() => {
       if (cancelled || !aliveRef.current) return;
 
@@ -95,10 +108,9 @@ export default function MobileBottomNav() {
       cancelled = true;
       if (unsub) unsub();
     };
-    // ✅ pathname included => clean re-subscribe on route change
   }, [uid, pathname]);
 
-  // Producer doc live (verified gate)
+  // producer doc live
   useEffect(() => {
     if (!uid) {
       setProducer(null);
@@ -131,30 +143,90 @@ export default function MobileBottomNav() {
     };
   }, [uid, pathname]);
 
+  // ✅ Active venue doc live (nur für Avatar im Venue Mode)
+  useEffect(() => {
+    const vid = profile?.activeVenueId ?? null;
+
+    // nur wenn Venue Mode + venueId gesetzt
+    if (!uid || profile?.activeRole !== "venue" || !vid) {
+      setActiveVenue(null);
+      return;
+    }
+
+    let unsub: (() => void) | null = null;
+    let cancelled = false;
+
+    Promise.resolve().then(() => {
+      if (cancelled || !aliveRef.current) return;
+
+      const ref = doc(db, "venues", vid);
+      unsub = onSnapshot(
+        ref,
+        (snap) => {
+          if (!aliveRef.current) return;
+          setActiveVenue(snap.exists() ? (snap.data() as VenueDoc) : null);
+        },
+        () => setActiveVenue(null)
+      );
+    });
+
+    return () => {
+      cancelled = true;
+      if (unsub) unsub();
+    };
+  }, [uid, profile?.activeRole, profile?.activeVenueId]);
+
   const loginHref = "/login";
   const isVerifiedProducer = producer?.verified === true;
 
-  // activeRole darf nur producer sein, wenn verified
-  const activeRole: "user" | "producer" =
-    profile?.activeRole === "producer" && isVerifiedProducer ? "producer" : "user";
+  // ✅ WICHTIG:
+  // BottomNav-Layout wechselt NUR bei Producer.
+  // Venue darf NICHT das Layout umschalten.
+  const navMode: "musician" | "producer" = useMemo(() => {
+    if (profile?.activeRole === "producer" && isVerifiedProducer) return "producer";
+    return "musician";
+  }, [profile?.activeRole, isVerifiedProducer]);
 
+  // ✅ Avatar Source:
+  // Wenn user im Venue Mode ist: Venue Avatar (wenn vorhanden), sonst fallback User
   const avatarSrc = useMemo(() => {
-    const base = profile?.photoURL ?? user?.photoURL ?? "/default-avatar.png";
+    const inVenueMode = profile?.activeRole === "venue";
+
+    const base = inVenueMode
+      ? activeVenue?.avatarURL ?? profile?.photoURL ?? user?.photoURL ?? "/default-avatar.png"
+      : profile?.photoURL ?? user?.photoURL ?? "/default-avatar.png";
 
     const v =
+      (inVenueMode
+        ? activeVenue?.updatedAt?.seconds ??
+          activeVenue?.updatedAt?.toMillis?.() ??
+          activeVenue?.updatedAt?.toDate?.()?.getTime?.()
+        : null) ??
       profile?.updatedAt?.seconds ??
       profile?.updatedAt?.toMillis?.() ??
       profile?.updatedAt?.toDate?.()?.getTime?.() ??
       null;
 
     return cacheBust(base, v ? String(v) : null);
-  }, [profile?.photoURL, profile?.updatedAt, user?.photoURL]);
+  }, [profile?.activeRole, activeVenue?.avatarURL, activeVenue?.updatedAt, profile?.photoURL, profile?.updatedAt, user?.photoURL]);
 
-  // Links / Labels
-  const profileHref = uid ? "/profile" : loginHref;
+  // ✅ Klick auf Profilbild:
+  // - Venue Mode -> IMMER /venues/edit (niemals apply!)
+  // - sonst -> /profile
+  //
+  // Hinweis: auch wenn memberships gerade noch laden, /venues/edit darf laden.
+  // Dein VenueEditClient macht den Guard korrekt erst nach membershipsLoading.
+  const profileHref = useMemo(() => {
+    if (!uid) return loginHref;
+
+    if (profile?.activeRole === "venue") return "/venues/edit";
+
+    return "/profile";
+  }, [uid, profile?.activeRole]);
+
   const profileLabel = uid ? "Profil" : "Login";
 
-  // ✅ User-Mode Nav (wie vorher)
+  // ✅ Musician Nav (Standard)
   const userItems = [
     { href: "/", label: "Feed", icon: HomeIcon },
     { href: "/search", label: "Suche", icon: SearchIcon },
@@ -163,16 +235,16 @@ export default function MobileBottomNav() {
     { href: profileHref, label: profileLabel, icon: UserIcon },
   ] as const;
 
-  // ✅ Producer-Mode Nav (wie du wolltest)
+  // ✅ Producer Nav
   const producerItems = [
     { href: "/", label: "Feed", icon: HomeIcon },
     { href: "/producers/dashboard", label: "Dashboard", icon: DashboardIcon },
-    { href: "/producers/dashboard", label: "Anfragen", icon: InboxIcon }, // später /producers/dashboard?tab=requests
+    { href: "/producers/dashboard", label: "Anfragen", icon: InboxIcon },
     { href: "/messages", label: "Chats", icon: ChatIcon },
     { href: profileHref, label: profileLabel, icon: UserIcon },
   ] as const;
 
-  const items = activeRole === "producer" ? producerItems : userItems;
+  const items = navMode === "producer" ? producerItems : userItems;
 
   return (
     <nav
@@ -200,13 +272,7 @@ export default function MobileBottomNav() {
                     aria-current={active ? "page" : undefined}
                     aria-label="Profil"
                   >
-                    <span
-                      className={clsx(
-                        "grid place-items-center rounded-lg p-1",
-                        active && "bg-white/10"
-                      )}
-                      aria-hidden="true"
-                    >
+                    <span className={clsx("grid place-items-center rounded-lg p-1", active && "bg-white/10")} aria-hidden="true">
                       <img
                         src={avatarSrc}
                         alt="Profil"
@@ -240,6 +306,11 @@ export default function MobileBottomNav() {
             );
           })}
         </ul>
+
+        {/* Optional Debug (wenn du willst): */}
+        {/* <div className="mt-2 text-[10px] text-white/30">
+          role={profile?.activeRole} venuesLoading={String(venuesLoading)} venues={venues?.length ?? 0}
+        </div> */}
       </div>
     </nav>
   );
@@ -247,28 +318,10 @@ export default function MobileBottomNav() {
 
 /* --- Icons --- */
 
-function IconBase({
-  children,
-  active,
-}: {
-  children: React.ReactNode;
-  active: boolean;
-}) {
+function IconBase({ children, active }: { children: React.ReactNode; active: boolean }) {
   return (
-    <span
-      className={clsx(
-        "grid place-items-center rounded-lg p-1",
-        active && "bg-white/10"
-      )}
-      aria-hidden="true"
-    >
-      <svg
-        width="22"
-        height="22"
-        viewBox="0 0 24 24"
-        fill="none"
-        className={clsx(active ? "opacity-100" : "opacity-90")}
-      >
+    <span className={clsx("grid place-items-center rounded-lg p-1", active && "bg-white/10")} aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className={clsx(active ? "opacity-100" : "opacity-90")}>
         {children}
       </svg>
     </span>
@@ -291,17 +344,8 @@ function HomeIcon({ active }: { active: boolean }) {
 function SearchIcon({ active }: { active: boolean }) {
   return (
     <IconBase active={active}>
-      <path
-        d="M10.5 18a7.5 7.5 0 1 1 5.3-12.8A7.5 7.5 0 0 1 10.5 18Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M16.3 16.3 20 20"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
+      <path d="M10.5 18a7.5 7.5 0 1 1 5.3-12.8A7.5 7.5 0 0 1 10.5 18Z" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M16.3 16.3 20 20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </IconBase>
   );
 }
@@ -321,20 +365,8 @@ function TagIcon({ active }: { active: boolean }) {
 function CalendarIcon({ active }: { active: boolean }) {
   return (
     <IconBase active={active}>
-      <path
-        d="M7 3v3M17 3v3M4.5 8.5h15"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <rect
-        x="4"
-        y="6"
-        width="16"
-        height="14"
-        rx="2.5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
+      <path d="M7 3v3M17 3v3M4.5 8.5h15" stroke="currentColor" strokeWidth="1.8" />
+      <rect x="4" y="6" width="16" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
     </IconBase>
   );
 }
@@ -342,22 +374,12 @@ function CalendarIcon({ active }: { active: boolean }) {
 function UserIcon({ active }: { active: boolean }) {
   return (
     <IconBase active={active}>
-      <path
-        d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M4.5 20.5a7.5 7.5 0 0 1 15 0"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
+      <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M4.5 20.5a7.5 7.5 0 0 1 15 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </IconBase>
   );
 }
 
-/* Producer Mode Icons */
 function DashboardIcon({ active }: { active: boolean }) {
   return (
     <IconBase active={active}>
@@ -374,18 +396,8 @@ function DashboardIcon({ active }: { active: boolean }) {
 function InboxIcon({ active }: { active: boolean }) {
   return (
     <IconBase active={active}>
-      <path
-        d="M4 4h16v12H4V4Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M4 16l4-5h3l2 2h2l2-2h3l4 5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
+      <path d="M4 4h16v12H4V4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      <path d="M4 16l4-5h3l2 2h2l2-2h3l4 5" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
     </IconBase>
   );
 }
@@ -393,22 +405,8 @@ function InboxIcon({ active }: { active: boolean }) {
 function ChatIcon({ active }: { active: boolean }) {
   return (
     <IconBase active={active}>
-      <rect
-        x="4"
-        y="5"
-        width="16"
-        height="12"
-        rx="3"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M8 17l-3 3v-3"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <rect x="4" y="5" width="16" height="12" rx="3" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M8 17l-3 3v-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </IconBase>
   );
 }
