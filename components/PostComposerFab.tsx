@@ -6,7 +6,7 @@ import { PostComposer } from "./PostComposer";
 export function PostComposerFab({ myProfile }: { myProfile: any }) {
   const [open, setOpen] = useState(false);
 
-  // Optional: ESC schließt Modal
+  // ESC schließt Modal
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
@@ -17,7 +17,7 @@ export function PostComposerFab({ myProfile }: { myProfile: any }) {
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating + Button */}
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -39,8 +39,15 @@ export function PostComposerFab({ myProfile }: { myProfile: any }) {
           />
 
           {/* Panel */}
-          <div className="absolute bottom-0 left-0 right-0 mx-auto w-full max-w-xl rounded-t-3xl border border-white/10 bg-black/90 p-4 shadow-2xl">
-            <div className="mb-3 flex items-center justify-between">
+          <div
+            className="
+              absolute bottom-0 left-0 right-0 mx-auto w-full max-w-xl
+              rounded-t-3xl border border-white/10 bg-black/90 shadow-2xl
+              max-h-[85vh] overflow-hidden
+            "
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3">
               <div className="text-sm text-white/80">Neuen Post erstellen</div>
               <button
                 type="button"
@@ -51,11 +58,10 @@ export function PostComposerFab({ myProfile }: { myProfile: any }) {
               </button>
             </div>
 
-            <PostComposer myProfile={myProfile} />
-
-            {/* Optional: nach dem Posten automatisch schließen:
-                -> siehe Punkt 2 (onPosted Callback)
-            */}
+            {/* ✅ Scrollbarer Inhalt mit genug Platz unten */}
+            <div className="overflow-y-auto px-4 pb-32">
+              <PostComposer myProfile={myProfile} />
+            </div>
           </div>
         </div>
       )}
