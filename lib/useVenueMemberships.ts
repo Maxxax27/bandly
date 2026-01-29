@@ -4,7 +4,6 @@ import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { onIdTokenChanged } from "firebase/auth";
 
-
 // ✅ Passe Import an
 import { auth, db } from "@/lib/firebase";
 
@@ -64,7 +63,6 @@ export function useVenueMemberships() {
     name: String(data?.name ?? "Venue"),
   } as VenueMembership;
 });
-
 
         // ✅ NICHT hart filtern -> sonst ist venues.length===0 oft falsch
         setVenues(list);

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, serverTimestamp, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 import { db, storage } from "@/lib/firebase";
@@ -91,48 +91,42 @@ export default function VenueEditClient() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
 
-  // Profile live (damit activeVenueId sauber kommt)
+  // ✅ Profile live (damit activeVenueId sauber kommt)
   useEffect(() => {
     if (!uid) {
       setProfile(null);
       return;
     }
-    const unsub = (async () => {
-      // snapshot statt getDoc ist stabiler
-      const { onSnapshot } = await import("firebase/firestore");
-      return onSnapshot(doc(db, "profiles", uid), (snap) => {
-        setProfile((snap.data() as any) ?? null);
-      });
-    })();
 
-    return () => {
-      unsub.then((fn) => fn && fn()).catch(() => {});
-    };
+    const unsub = onSnapshot(doc(db, "profiles", uid), (snap) => {
+      setProfile((snap.data() as any) ?? null);
+    });
+
+    return () => unsub();
   }, [uid]);
-// // ✅ GUARD (HARD FIX) – verhindert Apply-Redirect-Race
-useEffect(() => {
-  if (!uid) return;
 
-  // ❗️WICHTIG: Solange memberships laden -> NIE redirecten
-  if (membershipsLoading) return;
+  // ✅ GUARD (HARD FIX)
+  // - solange membershipsLoading -> NIE redirect
+  // - wenn keine venue -> apply
+  // - wenn activeVenueId fehlt -> setzen (OHNE activeRole zu ändern)
+  useEffect(() => {
+    if (!uid) return;
+    if (membershipsLoading) return;
 
-  const firstVenueId = safeVenues[0]?.venueId ?? null;
+    const firstVenueId = safeVenues[0]?.venueId ?? null;
 
-  // 1) wirklich KEINE Venue -> apply
-  if (!firstVenueId) {
-    router.replace("/venues/apply");
-    return;
-  }
+    if (!firstVenueId) {
+      router.replace("/venues/apply");
+      return;
+    }
 
-  // 2) activeVenueId fehlt -> setzen (ohne activeRole zu ändern)
-  if (!profile?.activeVenueId) {
-    updateDoc(doc(db, "profiles", uid), {
-      activeVenueId: firstVenueId,
-      updatedAt: serverTimestamp(),
-    }).catch(() => {});
-  }
-}, [uid, membershipsLoading, safeVenues.length, profile?.activeVenueId, router]);
-
+    if (!profile?.activeVenueId) {
+      updateDoc(doc(db, "profiles", uid), {
+        activeVenueId: firstVenueId,
+        updatedAt: serverTimestamp(),
+      }).catch(() => {});
+    }
+  }, [uid, membershipsLoading, safeVenues, profile?.activeVenueId, router]);
 
   // Load venue doc
   useEffect(() => {
@@ -340,9 +334,7 @@ useEffect(() => {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">{headerTitle}</h1>
-          <p className="mt-1 text-sm text-white/60">
-            Profilfoto, Titelbild, Adresse & Öffnungszeiten.
-          </p>
+          <p className="mt-1 text-sm text-white/60">Profilfoto, Titelbild, Adresse & Öffnungszeiten.</p>
         </div>
 
         <button
@@ -367,6 +359,7 @@ useEffect(() => {
       {/* Cover */}
       <div className="rounded-3xl border border-white/10 bg-black/30 p-4 space-y-3">
         <div className="text-sm font-semibold text-white">Titelbild</div>
+
         <div className="aspect-[16/6] w-full overflow-hidden rounded-2xl border border-white/10 bg-black/40">
           {form.coverURL ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -375,7 +368,13 @@ useEffect(() => {
             <div className="grid h-full place-items-center text-sm text-white/40">Kein Titelbild</div>
           )}
         </div>
-        <input type="file" accept="image/*" onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)} className="block w-full text-sm text-white/70" />
+
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
+          className="block w-full text-sm text-white/70"
+        />
         <div className="text-xs text-white/40">Wird gespeichert unter: venues/{venueId}/cover.jpg</div>
       </div>
 
@@ -390,13 +389,19 @@ useEffect(() => {
               <div className="grid h-full place-items-center text-white/40">—</div>
             )}
           </div>
+
           <div className="min-w-0 flex-1">
             <div className="text-sm font-semibold text-white">Profilfoto</div>
             <div className="text-xs text-white/40">venues/{venueId}/avatar.jpg</div>
           </div>
         </div>
 
-        <input type="file" accept="image/*" onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)} className="block w-full text-sm text-white/70" />
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)}
+          className="block w-full text-sm text-white/70"
+        />
 
         <div>
           <label className="text-sm text-white/80">Name *</label>

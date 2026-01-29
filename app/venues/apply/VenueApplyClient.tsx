@@ -7,6 +7,7 @@ import {
   serverTimestamp,
   setDoc,
   doc,
+  writeBatch,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
@@ -70,8 +71,15 @@ export default function VenueApplyClient() {
         ...(googleMaps.trim() ? { googleMaps: googleMaps.trim() } : {}),
       };
 
-      // 1) Venue Application
-      const ref = await addDoc(collection(db, "venueApplications"), {
+      // ✅ Alles atomar: Application + AdminMessage + (optional) Draft Venue + Membership + Profile Update
+      const batch = writeBatch(db);
+
+      // IDs vorab erstellen (ohne addDoc)
+      const appRef = doc(collection(db, "venueApplications"));
+      const venueRef = doc(collection(db, "venues")); // Draft Venue ID
+
+      // 1) Venue Application (pending)
+      batch.set(appRef, {
         applicantUid: uid,
         venueName: venueName.trim(),
         proposedLocation,
@@ -79,14 +87,16 @@ export default function VenueApplyClient() {
         status: "pending",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
+        // ✅ Verbindung zur Draft Venue
+        draftVenueId: venueRef.id,
       });
 
-      // 2) ✅ Admin Inbox Message (damit es in /admin/inbox auftaucht)
-      await setDoc(doc(db, "adminMessages", ref.id), {
+      // 2) Admin Inbox Message (damit es in /admin/inbox auftaucht)
+      batch.set(doc(db, "adminMessages", appRef.id), {
         type: "venue_application",
         status: "open",
 
-        applicationId: ref.id,
+        applicationId: appRef.id,
 
         fromUid: uid,
         fromName: auth.currentUser?.displayName ?? "",
@@ -97,11 +107,68 @@ export default function VenueApplyClient() {
         proposedLocation,
         links,
 
+        // ✅ Verbindung zur Draft Venue
+        draftVenueId: venueRef.id,
+
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
 
-      setDoneId(ref.id);
+      // 3) ✅ Draft Venue anlegen (NICHT öffentlich!)
+      //    => so kannst du sofort Edit + Upload machen, aber niemand sieht es in /venues
+      batch.set(venueRef, {
+        name: venueName.trim(),
+        bio: "",
+        avatarURL: "",
+        coverURL: "",
+
+        location: {
+          country: proposedLocation.country,
+          city: proposedLocation.city,
+          ...(proposedLocation.address ? { address: proposedLocation.address } : {}),
+        },
+
+        // optional (dein PublicClient unterstützt links)
+        links,
+
+        verified: false,
+        published: false,
+
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+
+        // optional ownership hint
+        ownerUid: uid,
+        applicationId: appRef.id,
+      });
+
+      // 4) ✅ Membership erstellen (damit Storage Rules Upload erlauben)
+      batch.set(doc(db, "venueMemberships", uid, "venues", venueRef.id), {
+        venueId: venueRef.id,
+        role: "owner",
+        name: venueName.trim(),
+        // ✅ membership ist "verified" als membership (du bist Owner),
+        //    die Venue selbst bleibt verified=false, published=false
+        verified: true,
+        published: false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      // 5) ✅ Profile setzen (damit Edit / BottomNav nicht auf apply redirected)
+      batch.set(
+        doc(db, "profiles", uid),
+        {
+          activeRole: "venue",
+          activeVenueId: venueRef.id,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      await batch.commit();
+
+      setDoneId(appRef.id);
       setVenueName("");
       setCity("");
       setAddress("");
@@ -109,6 +176,7 @@ export default function VenueApplyClient() {
       setInstagram("");
       setGoogleMaps("");
     } catch (e: any) {
+      console.error(e);
       setError(e?.message ?? "Unbekannter Fehler");
     } finally {
       setLoading(false);
@@ -197,6 +265,9 @@ export default function VenueApplyClient() {
         {doneId && (
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
             Bewerbung gesendet ✅ (ID: {doneId})
+            <div className="mt-1 text-xs text-emerald-200/70">
+              Du kannst dein Venue-Profil bereits bearbeiten (noch nicht öffentlich sichtbar).
+            </div>
           </div>
         )}
 

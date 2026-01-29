@@ -26,8 +26,10 @@ function formatMB(bytes: number) {
 
 export function PostComposer({
   myProfile,
+  onPosted,
 }: {
   myProfile: any; // dein profiles/{uid} doc
+  onPosted?: () => void; // ✅ NEU: optionaler Callback (z.B. Modal schließen)
 }) {
   const [content, setContent] = useState("");
   const [mode, setMode] = useState<"musician" | "band">("musician");
@@ -150,6 +152,8 @@ export function PostComposer({
 
       setContent("");
       setFiles([]);
+
+      onPosted?.(); // ✅ NEU: z.B. Modal schließen
     } catch (e: any) {
       setErr(e.message ?? "Fehler beim Posten");
     } finally {

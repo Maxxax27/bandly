@@ -113,7 +113,7 @@ export default function MusiciansPage() {
     if (zip.trim()) parts.push(`PLZ ${zip.trim()}`);
     if (role !== "Alle") parts.push(role);
     if (status !== "Alle") parts.push(status);
-    return parts.length ? parts.join(" · ") : "Filter optional";
+    return parts.length ? parts.join(" · ") : "";
   }, [region, zip, role, status]);
 
   return (
@@ -121,7 +121,7 @@ export default function MusiciansPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-zinc-900">Musiker finden</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-white-900">Musiker finden</h1>
           <p className="text-sm text-zinc-600 mt-1">{subtitle}</p>
         </div>
 

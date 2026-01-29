@@ -349,7 +349,7 @@ export default function ListingsPage() {
         </div>
 
         <div className="mt-3 text-xs text-zinc-400">
-          Beispiele: „Gitarre“ findet Guitar/Guitarist/Leadguitar/Rhythmusgitarre · „Vocal“ findet Sänger/Screams/Growls/Clean Vocals · „Drums“ findet Schlagzeug/Blastbeats/Doublebass
+          Beispiel: Basssist sucht Band / Band sucht Sänger/in
         </div>
       </div>
 
