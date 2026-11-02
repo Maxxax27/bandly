@@ -3,6 +3,7 @@ import Providers from "./providers";
 import Header from "@/components/Header";
 import HeaderNav from "@/components/HeaderNav";
 import MobileBottomNav from "@/components/MobileBottomNav";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata = {
   title: "Bandly | Schweizer Bandbörse",
@@ -38,6 +39,7 @@ export default function RootLayout({
 
         {/* Mobile Bottom Navigation */}
         <MobileBottomNav />
+        <SpeedInsights />
       </body>
     </html>
   );
